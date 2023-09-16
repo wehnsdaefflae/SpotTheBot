@@ -5,8 +5,12 @@ from nicegui import ui, app
 from nicegui.elements.label import Label
 
 
-def generate_name(label: Label) -> None:
-    label.text = f"[name {random.randint(1, 100)}]"
+def get_random_name() -> str:
+    return f"[name {random.randint(1, 100)}]"
+
+
+def randomize_name(label: Label) -> None:
+    label.text = get_random_name()
 
 
 def create_footer() -> None:
@@ -15,11 +19,6 @@ def create_footer() -> None:
             label_aces = ui.link("check out top aces", "/aces")
             label_results = ui.link("check out results", "/results")
             label_about = ui.link("about", "/about")
-
-
-def log_in(user_name: str) -> None:
-    app.storage.user["user_name"] = user_name
-    ui.open("/")
 
 
 @ui.page("/")
@@ -31,22 +30,20 @@ def index_page() -> None:
         for i in range(4):
             each_indicator_label = ui.label(f"[indicator {i + 1}] [accuracy]")
 
-        user_name = app.storage.user.get("user_name", None)
-        with ui.column() as column:
-            if user_name is None:
-                label_name = ui.label()
-                generate_name(label_name)
-                label_name.on("click", lambda: generate_name(label_name))
+        user_name = app.storage.user.get("user_name", get_random_name())
+        with ui.row() as row:
+            label_welcome = ui.label(f"Welcome")
+            label_name = ui.label(user_name)
+        label_name.on("click", lambda: randomize_name(label_name))
 
-                button_name = ui.button("Take name")
-                button_name.on("click", lambda: log_in(user_name))
-                user_name = label_name.text
-
-            else:
-                label_welcome = ui.label(f"Welcome {user_name}! Get ready to")
-                button_start = ui.button("SPOT THE BOT", on_click=lambda: ui.open("/game"))
+        button_start = ui.button("SPOT THE BOT", on_click=lambda: start_game(label_name.text))
 
         create_footer()
+
+
+def start_game(user_name: str) -> None:
+    app.storage.user["user_name"] = user_name
+    ui.open("/game")
 
 
 @ui.page("/game")
