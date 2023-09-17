@@ -112,6 +112,8 @@ def about_page() -> None:
         label_title = ui.label("About")
 
     text_example = ui.markdown("bla bla bla")
+    donate_label = ui.markdown("donate, enter api key, etc")
+    api_text = ui.textarea("api key")
 
     create_footer()
 
