@@ -5,9 +5,8 @@ import frontend
 from fastapi import FastAPI
 
 app = FastAPI()
+frontend.run(app)
 
-
-frontend.init(app)
 
 if __name__ == '__main__':
     # `uvicorn main:app --reload --log-level debug --port 8000 --host 0.0.0.0`
