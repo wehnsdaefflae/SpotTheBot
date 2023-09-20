@@ -1,6 +1,7 @@
 # coding=utf-8
 import dataclasses
 import random
+import re
 
 from fastapi import FastAPI
 from nicegui import ui, app
@@ -95,25 +96,50 @@ def next_snippet(user_name: str) -> Snippet:
     )
 
 
-def assumed_human(user_name: str, snippet_id: int, points: int) -> None:
-    print(f"{user_name} assumed {snippet_id} as HUMAN with {points} points")
+def assumed_human(user_name: str, snippet: Snippet, points: int) -> None:
+    print(f"{user_name} assumed {hash(snippet)} as HUMAN with {points} points")
     # update stats
+    #   if is_bot:
+    #       register as gullible
     ui.open("/game")
 
 
-def assumed_bot(user_name: str, snippet_id: int, points: int) -> None:
-    print(f"{user_name} assumed {snippet_id} as BOT with {points} points")
+def assumed_bot(user_name: str, snippet: Snippet, points: int) -> None:
+    print(f"{user_name} assumed {hash(snippet)} as BOT with {points} points")
 
     def update_stats(_dialog: Dialog) -> None:
         # update stats
+        #   if is_bot:
+        #       revert paranoid
+
         _dialog.close()
         ui.open("/game")
 
     with ui.dialog() as dialog, ui.card():
-        ui.label("Give reasons why you think this is a bot")
-        ui.button("Close", on_click=lambda: update_stats(dialog))
+        # register as paranoid
+        label_title = ui.label("What made you suspicious?")
+        label_title.classes("text-h4 font-bold text-grey-8")
+        select_text(snippet)
+        button_close = ui.button("Close", on_click=lambda: update_stats(dialog))
+        button_close.disable()
+
+    dialog.props("persistent")
 
     dialog.open()
+
+
+def display_snippet(snippet: Snippet) -> None:
+    text_context = ui.markdown(f"SOURCE: {snippet.source}")
+    text_content = ui.markdown(snippet.content)
+
+
+def select_text(snippet: Snippet) -> None:
+    with ui.row() as text_content_clickable:
+        for each_word in re.split(" ", snippet.content):
+            label_word = ui.label(each_word)
+            label_word.classes("cursor-pointer")
+            label_word.on("click", lambda event: print(event.sender.text))
+            # label_word
 
 
 @ui.page("/game")
@@ -133,8 +159,7 @@ def game_page() -> None:
     # words = snippet.content.split(" ")
 
     with ui.column() as column:
-        text_context = ui.markdown(f"SOURCE: {snippet.source}")
-        text_content = ui.markdown(snippet.content)
+        display_snippet(snippet)
 
         text_points = ui.markdown(f"{points} points remaining")
 
@@ -145,8 +170,8 @@ def game_page() -> None:
             text_gullible = ui.markdown("gullible")
 
         with ui.row() as row:
-            button_bot = ui.button("BOT", on_click=lambda: assumed_bot(user_name, hash(snippet), points))
-            button_human = ui.button("HUMAN", on_click=lambda: assumed_human(user_name, hash(snippet), points))
+            button_bot = ui.button("BOT", on_click=lambda: assumed_bot(user_name, snippet, points))
+            button_human = ui.button("HUMAN", on_click=lambda: assumed_human(user_name, snippet, points))
 
     create_footer()
 
