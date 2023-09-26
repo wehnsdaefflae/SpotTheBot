@@ -120,35 +120,31 @@ def next_snippet(user_name: str) -> Snippet:
 
 def submit(user_name: str, snippet: Snippet, points: int) -> None:
     print(f"{user_name} assumed {hash(snippet)} as HUMAN with {points} points")
-    global tagged_word_count, button_text
-    tagged_word_count = 0
-    button_text = "I'm sure it's fine..."
-
     # update stats
     #   if is_bot:
     #       register as gullible
     ui.open("/game")
 
 
-def get_signs() -> list[str]:
-    return [
-        "ausweichend",
-        "zu allgemein",
-        "abgedroschen",
-        "unlogisch",
-        "unverständlich",
-        "künstlich",
-        "monoton",
-        "redundant",
-        "langweilig",
-        "unpräzise",
-        "stereotyp",
-        "formelhaft",
-        "gekünstelt",
-        "unspezifisch",
-        "wiederholt",
-        "unzusammenhängend"
-    ]
+def get_signs() -> dict[str, int]:
+    return {
+        "ausweichend": 523,
+        "zu allgemein": 762,
+        "abgedroschen": 304,
+        "unlogisch": 947,
+        "unverständlich": 665,
+        "künstlich": 238,
+        "monoton": 489,
+        "redundant": 956,
+        "langweilig": 112,
+        "unpräzise": 839,
+        "stereotyp": 721,
+        "formelhaft": 596,
+        "gekünstelt": 381,
+        "unspezifisch": 428,
+        "wiederholt": 710,
+        "unzusammenhängend": 201
+    }
 
 
 def get_tagging(label_word: ui.label) -> Callable[[ClickEventArguments], Coroutine[None, None, None]]:
@@ -165,16 +161,19 @@ async def click_event(event: ClickEventArguments) -> None:
     word_label = event.sender
     assert isinstance(word_label, ui.label)
     if word_label.sus_sign is None:
-        signs = get_signs()
+        signs_dict = get_signs()
+        signs = sorted(signs_dict, key=signs_dict.get, reverse=True)
+        signs_popular = signs[:5]
+        signs_rest = signs[5:]
         tag_word = get_tagging(word_label)
         with ui.menu() as menu:
-            for each_sign in signs[:5]:
+            for each_sign in signs_popular:
                 ui.menu_item(each_sign, on_click=tag_word)
             ui.separator()
             with ui.row() as row:
-                ui.input("something else...")
+                ui.input("something else...", autocomplete=signs_rest)
                 ui.button("submit", on_click=menu.close)
-                # TODO: propose alternative while typing and eventually tag word with input
+                # TODO: propose alternative from signs_rest while typing and eventually tag word with input
 
         menu.move(word_label)
         menu.open()
