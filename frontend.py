@@ -11,6 +11,8 @@ from nicegui.events import ClickEventArguments
 
 
 async def increment_tagged_word_count() -> None:
+    await ui.run_javascript("console.log(\"incrementing...\"); ", respond=False)
+
     await ui.run_javascript(
         f"window.tagged_word_count++; ", respond=False)
 
@@ -20,7 +22,10 @@ async def increment_tagged_word_count() -> None:
 
 
 async def decrement_tagged_word_count() -> None:
+    await ui.run_javascript("console.log(\"decrementing...\"); ", respond=False)
+
     await ui.run_javascript("window.tagged_word_count = Math.max(tagged_word_count - 1, 0);", respond=False)
+
     await ui.run_javascript(
         "if (window.tagged_word_count < 1) {\n"
         "    window.submit_button.children[1].children[0].innerText = 'I am sure it is fine...';\n"
@@ -163,10 +168,13 @@ async def click_event(event: ClickEventArguments) -> None:
         signs = get_signs()
         tag_word = get_tagging(word_label)
         with ui.menu() as menu:
-            for each_sign in signs:
+            for each_sign in signs[:5]:
                 ui.menu_item(each_sign, on_click=tag_word)
             ui.separator()
-            ui.menu_item("something else...", on_click=lambda: None)
+            with ui.row() as row:
+                ui.input("something else...")
+                ui.button("submit", on_click=menu.close)
+                # TODO: propose alternative while typing and eventually tag word with input
 
         menu.move(word_label)
         menu.open()
@@ -229,6 +237,9 @@ def game_page() -> None:
         submit_button.classes("w-full justify-center")
 
     async def init_tag_count() -> None:
+        url = await ui.run_javascript(f'new URL(window.location.href)')
+        if not url.endswith("/game"):
+            return
         await ui.run_javascript("window.tagged_word_count = 0;", respond=False)
         await ui.run_javascript(f"window.submit_button = document.getElementById('c{submit_button.id}');", respond=False)
         await decrement_tagged_word_count()
@@ -262,6 +273,7 @@ def index_page() -> None:
 
         label_welcome = ui.label(f"as")
         label_name = ui.label(user_name)
+        label_name.classes("cursor-pointer")
         label_name.on("click", lambda: randomize_name(label_name))
 
         create_footer()
