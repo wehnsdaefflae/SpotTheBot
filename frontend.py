@@ -28,7 +28,6 @@ async def decrement_tagged_word_count() -> None:
     )
 
 
-
 def get_random_name() -> str:
     return f"[name {random.randint(1, 100)}]"
 
