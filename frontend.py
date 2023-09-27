@@ -16,6 +16,7 @@ from names import generate_name
 class Snippet:
     source: str
     content: str
+    is_fake: bool
 
 
 class InteractiveText:
@@ -193,11 +194,8 @@ def results_page() -> None:
     for i in range(10):
         ui.label(f"[result {i + 1}] [accuracy]")
 
-    text_example = ui.markdown("""Die ADF-RDA ist 1998 in der heutigen Form aus einer Fusion zwischen verschiedenen kleineren Parteien und der ADF mit dem 
-    traditionsreichen Rassemblement Démocratique Africain, <span style="background-color: red;">RDA</span> hervorgegangen, in dessen programmatischer Tradition sie 
-    sich bis heute sieht. Die ADF-RDA ist von der Wählerstärke her betrachtet eine der konstantesten Parteien Burkina Fasos. Bereits an den Parlamentswahlen vom 24. 
-    Mai 1992 und 11. Mai 1997, welche von der ADF und dem RDA noch unabhängig voneinander bestritten wurden, kamen sie zusammen auf einen ähnlichen Wähleranteil von 
-    rund 13 %.""")
+    snippet = next_snippet()
+    text_example = ui.markdown(snippet.content)
 
     create_footer()
 
@@ -215,7 +213,7 @@ def about_page() -> None:
     create_footer()
 
 
-def next_snippet(user_name: str) -> Snippet:
+def next_snippet(user_name: str | None = None) -> Snippet:
     content = (
         f"TEXT {random.randint(0, 100)}:\n"
         f"\n"
@@ -226,7 +224,8 @@ def next_snippet(user_name: str) -> Snippet:
     )
     return Snippet(
         source="Wikipedia",
-        content=content
+        content=content,
+        is_fake=False
     )
 
 
