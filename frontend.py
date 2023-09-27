@@ -9,6 +9,7 @@ from nicegui import ui, app
 from nicegui.elements.label import Label
 
 from misc import hex_color_segmentation
+from names import generate_name
 
 
 @dataclasses.dataclass(frozen=True)
@@ -149,7 +150,9 @@ class InteractiveText:
 
 
 def get_random_name() -> str:
-    return f"[name {random.randint(1, 100)}]"
+    name = generate_name()
+    return name
+    # return f"[name {random.randint(1, 100)}]"
 
 
 def randomize_name(label: Label) -> None:
@@ -288,8 +291,8 @@ def game_page() -> None:
             element_diagram = ui.element()
             text_gullible = ui.markdown("gullible")
 
-        submit_button = ui.button(interactive_text.submit_human, on_click=lambda: submit(user_name, snippet, points))
-        submit_button.classes("w-full justify-center")
+    submit_button = ui.button(interactive_text.submit_human, on_click=lambda: submit(user_name, snippet, points))
+    submit_button.classes("w-full justify-center")
 
     async def init_tag_count() -> None:
         url = await ui.run_javascript(f'new URL(window.location.href)', respond=True)
