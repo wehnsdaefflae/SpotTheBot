@@ -71,8 +71,11 @@ class InteractiveText:
 
                 ui.separator()
                 with ui.row() as row:
-                    input_label = ui.input("something else...", autocomplete=[each_sign for each_sign, _ in signs_rest])
-                    ui.button("submit", on_click=lambda _: self._rare_tag(word_label, input_label.value, signs_rest, menu))
+                    input_label = ui.input(
+                        "something else...",
+                        autocomplete=[each_sign for each_sign, _ in signs_rest]
+                    )
+                    input_label.on("change", lambda: self._rare_tag(word_label, input_label.value, signs_rest, menu))
 
             menu.move(word_label)
             menu.open()
