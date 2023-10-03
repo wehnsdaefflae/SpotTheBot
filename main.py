@@ -16,10 +16,10 @@ def main() -> None:
 def _main() -> None:
     import redislite
 
-    redis = redislite.Redis()
-    redis.set("foo", "bar")
+    redis = redislite.Redis("spotthebot.rdb", db=0)
+    # redis.set("foo", "bar")
     print(redis.get("foo"))
 
 
 if __name__ == '__main__':
-    main()
+    _main()
