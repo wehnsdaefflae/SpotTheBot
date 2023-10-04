@@ -46,9 +46,11 @@ class Snippet:
     text: str
     source: str
     is_bot: bool
+    metadata: dict[str, str]
+    # date generated, model used, etc.
 
 
-def set_snippet(r: redislite.Redis, text: str, source: str, is_bot: bool) -> int:
+def set_snippet(r: redislite.Redis, text: str, source: str, is_bot: bool, metadata: dict[str, str]) -> int:
     # Check for duplicate snippet
     text_hash = sha256(text.encode()).hexdigest()
     if r.sismember("snippet_hashes", text_hash):
@@ -62,7 +64,8 @@ def set_snippet(r: redislite.Redis, text: str, source: str, is_bot: bool) -> int
     r.hset(snippet_key, mapping={
         "text": text,
         "source": source,
-        "is_bot": int(is_bot)
+        "is_bot": int(is_bot),
+        **metadata
     })
     r.sadd("snippet_hashes", text_hash)
 
@@ -76,7 +79,7 @@ def get_snippet(r: redislite.Redis, snippet_id: int) -> Snippet:
         key.decode(): (value.decode() if key.decode() != "is_bot" else bool(int(value.decode())))
         for key, value in result.items()
     }
-    return Snippet(snippet_id, data["text"], data["source"], data["is_bot"])
+    return Snippet(snippet_id, data.pop("text"), data.pop("source"), data.pop("is_bot"), data)
 
 
 # ----- Marker Database Functions -----
@@ -101,7 +104,7 @@ def main() -> None:
 
     }
     redis = redislite.Redis("spotthebot.rdb", db=0)
-    set_snippet(redis, "Hello, world!", "https://example.com", False)
+    set_snippet(redis, "Hello, world!", "https://example.com", False, dict())
 
 
 if __name__ == '__main__':
