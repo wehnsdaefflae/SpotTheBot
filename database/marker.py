@@ -16,32 +16,35 @@ class Field(Enum):
     TRUE_NEGATIVES = "true_negatives"
 
 
-def increment_marker(r: redislite.Redis, marker_name: str, field: Field) -> None:
-    # increment_marker('repetitive', Field.TRUE_POSITIVE_COUNT)
-    # todo: set expiry
-    marker_key = f"marker:{marker_name}"
-    marker_field_key = f"{marker_key}:{field.value}"
-    r.incr(marker_field_key)
+class Markers:
+    def __init__(self, redis: redislite.Redis, expiration_seconds: int = 60 * 60 * 24 * 7 * 30 * 6) -> None:
+        self.redis = redis
+        self.expiration_seconds = expiration_seconds
 
-    marker_update_key = f"{marker_key}:last_update"
-    r.set(marker_update_key, time.time())
+    def increment_marker(self, marker_name: str, field: Field) -> None:
+        # increment_marker('repetitive', Field.TRUE_POSITIVE_COUNT)
+        # todo: set expiry
+        marker_key = f"marker:{marker_name}"
+        marker_field_key = f"{marker_key}:{field.value}"
+        self.redis.incr(marker_field_key)
 
+        marker_update_key = f"{marker_key}:last_update"
+        self.redis.set(marker_update_key, time.time())
 
-def get_marker_value(r: redislite.Redis, marker_name: str, field: Field) -> int:
-    # value = get_marker_value('repetitive', Field.TRUE_POSITIVE_COUNT)
-    # print(value)  # Outputs: 10
-    marker_field_key = f"marker:{marker_name}:{field.value}"
-    value = r.get(marker_field_key)
-    return int(value) if value else 0
+    def get_marker_value(self, marker_name: str, field: Field) -> int:
+        # value = get_marker_value('repetitive', Field.TRUE_POSITIVE_COUNT)
+        # print(value)  # Outputs: 10
+        marker_field_key = f"marker:{marker_name}:{field.value}"
+        value = self.redis.get(marker_field_key)
+        return int(value) if value else 0
 
+    def remove_marker(self, marker_name: str) -> None:
+        # remove_marker('repetitive')
+        marker_keys_pattern = f"marker:{marker_name}:*"
+        keys_to_delete = self.redis.keys(marker_keys_pattern)
 
-def remove_marker(r: redislite.Redis, marker_name: str) -> None:
-    # remove_marker('repetitive')
-    marker_keys_pattern = f"marker:{marker_name}:*"
-    keys_to_delete = r.keys(marker_keys_pattern)
-
-    # Delete each key
-    with r.pipeline() as pipe:
-        for key in keys_to_delete:
-            r.delete(key)
-        pipe.execute()
+        # Delete each key
+        with self.redis.pipeline() as pipe:
+            for key in keys_to_delete:
+                self.redis.delete(key)
+            pipe.execute()

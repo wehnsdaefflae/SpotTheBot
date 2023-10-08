@@ -1,12 +1,8 @@
 import redislite
 
-
-def initialize_counters(r: redislite.Redis):
-    if not r.exists("user_id_counter"):
-        r.set("user_id_counter", 0)
-
-    if not r.exists("snippet_id_counter"):
-        r.set("snippet_id_counter", 0)
+from database.marker import Markers
+from database.snippet import Snippets
+from database.user import Users
 
 
 def main() -> None:
@@ -15,10 +11,15 @@ def main() -> None:
     #   - [x] put all relevant info in key value
     #   - [x] determine fast method to check all values
     # - [ ] do it for markers
+    # - [ ] test each class
 
-    redis = redislite.Redis("spotthebot.rdb", db=0)
+    user_interface = redislite.Redis("spotthebot.rdb", db=0)
+    snippet_interface = redislite.Redis("spotthebot.rdb", db=1)
+    marker_interface = redislite.Redis("spotthebot.rdb", db=2)
 
-    initialize_counters(redis)
+    user_db = Users(user_interface)
+    snippet_db = Snippets(snippet_interface)
+    marker_db = Markers(marker_interface)
 
 
 if __name__ == '__main__':
