@@ -10,7 +10,7 @@ def main() -> None:
     #  - [x] set key expiration
     #   - [x] put all relevant info in key value
     #   - [x] determine fast method to check all values
-    # - [ ] do it for markers
+    # - [x] do it for markers
     # - [ ] test each class
 
     user_interface = redislite.Redis("spotthebot.rdb", db=0)

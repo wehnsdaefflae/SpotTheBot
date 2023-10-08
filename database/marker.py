@@ -23,13 +23,10 @@ class Markers:
 
     def increment_marker(self, marker_name: str, field: Field) -> None:
         # increment_marker('repetitive', Field.TRUE_POSITIVE_COUNT)
-        # todo: set expiry
         marker_key = f"marker:{marker_name}"
         marker_field_key = f"{marker_key}:{field.value}"
         self.redis.incr(marker_field_key)
-
-        marker_update_key = f"{marker_key}:last_update"
-        self.redis.set(marker_update_key, time.time())
+        self.redis.expire(marker_field_key, self.expiration_seconds)
 
     def get_marker_value(self, marker_name: str, field: Field) -> int:
         # value = get_marker_value('repetitive', Field.TRUE_POSITIVE_COUNT)
