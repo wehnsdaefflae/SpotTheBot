@@ -45,10 +45,10 @@ class Users:
             "last_negatives_rate": .5
         })
     
-        self.redis.expire(user_key, self.expiration_seconds)
-    
         name_hash_key = f"name_hash:{secret_name_hash}"
         self.redis.set(name_hash_key, user_id)
+
+        self.redis.expire(user_key, self.expiration_seconds)
         self.redis.expire(name_hash_key, self.expiration_seconds)
     
         if invited_by_user_id is not None:
@@ -65,7 +65,7 @@ class Users:
         friends = self.get_friends(user_id)
         with self.redis.pipeline() as pipe:
             for each_friend_id in friends:
-                self.remove_friend_unidirectional(each_friend_id, user_id, pipeline=pipe)
+                self._remove_friend_unidirectional(each_friend_id, user_id, pipeline=pipe)
             pipe.execute()
     
         secret_name_hash = self.redis.hget(user_key, "secret_name_hash")
@@ -92,7 +92,7 @@ class Users:
     
         self._reset_user_expiration(user_key)
 
-    def remove_friend_unidirectional(self, user_id: int, friend_id: int, pipeline: Pipeline | None) -> None:
+    def _remove_friend_unidirectional(self, user_id: int, friend_id: int, pipeline: Pipeline | None) -> None:
         # remove_friend_unidirectional(234, 523)
         users_friends_key = f"user:{user_id}:friends"
     
@@ -103,8 +103,10 @@ class Users:
 
     def remove_friendship(self, user_id: int, friend_id: int) -> None:
         # remove_friendship(234, 523)
-        self.remove_friend_unidirectional(user_id, friend_id, pipeline=None)
-        self.remove_friend_unidirectional(friend_id, user_id, pipeline=None)
+        self._remove_friend_unidirectional(user_id, friend_id, pipeline=None)
+        self._remove_friend_unidirectional(friend_id, user_id, pipeline=None)
+
+        self._reset_user_expiration(f"user:{user_id}")
     
     def update_user_state(self, user_key: str, state_update: StateUpdate, minimum: int = 10) -> None:
         # update_user_state('JohnDoe', StateUpdate(0, 0, 1, 0))
