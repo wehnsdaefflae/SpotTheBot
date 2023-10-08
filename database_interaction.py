@@ -6,7 +6,7 @@ from enum import Enum
 from loguru import logger
 
 import redislite
-from redis.client import Pipeline
+
 
 logger.add(sys.stderr, format="{time} {level} {message}", colorize=True, level="INFO")
 logger.add("file_{time}.log", backtrace=True, diagnose=True, rotation="500 MB", level="DEBUG")
@@ -78,7 +78,7 @@ def make_friends(r: redislite.Redis, user_id: int, friend_id: int) -> None:
     r.sadd(friends_friends_key, user_id)
 
 
-def remove_friend_unidirectional(r: redislite.Redis, user_id: int, friend_id: int, pipeline: Pipeline | None) -> None:
+def remove_friend_unidirectional(r: redislite.Redis, user_id: int, friend_id: int, pipeline: "Pipeline" | None) -> None:
     # remove_friend_unidirectional(234, 523)
     users_friends_key = f"user:{user_id}:friends"
 
