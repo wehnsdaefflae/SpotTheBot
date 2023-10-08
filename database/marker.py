@@ -17,7 +17,7 @@ class Field(Enum):
 
 
 class Markers:
-    def __init__(self, redis: redislite.Redis, expiration_seconds: int = 60 * 60 * 24 * 7 * 30 * 6) -> None:
+    def __init__(self, redis: redislite.Redis, expiration_seconds: int = 60 * 60 * 24 * 7) -> None:
         self.redis = redis
         self.expiration_seconds = expiration_seconds
 
