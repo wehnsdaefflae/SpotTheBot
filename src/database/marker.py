@@ -16,8 +16,8 @@ class Field(Enum):
 
 
 class Markers:
-    def __init__(self, redis: redislite.Redis, max_markers: int = 100) -> None:
-        self.redis = redis
+    def __init__(self, redis: redislite.Redis | None = None, max_markers: int = 100) -> None:
+        self.redis = redis or redislite.Redis("../database/spotthebot.rdb", db=2)
         self.max_markers = max_markers
 
     def _remove_older_markers(self) -> None:

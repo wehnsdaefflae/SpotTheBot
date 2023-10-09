@@ -19,8 +19,8 @@ class StateUpdate:
 
 
 class Users:
-    def __init__(self, redis: redislite.Redis, expiration_seconds: int = 60 * 60 * 24 * 7 * 30 * 6) -> None:
-        self.redis = redis
+    def __init__(self, redis: redislite.Redis | None = None, expiration_seconds: int = 60 * 60 * 24 * 7 * 30 * 6) -> None:
+        self.redis = redis or redislite.Redis("../database/spotthebot.rdb", db=0)
         self.expiration_seconds = expiration_seconds
 
         if not self.redis.exists("user_id_counter"):
@@ -148,4 +148,3 @@ class Users:
         })
     
         self._reset_user_expiration(user_key)
-    

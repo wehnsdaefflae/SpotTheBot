@@ -1,5 +1,7 @@
+import sys
 import unittest
 import redislite
+from loguru import logger
 
 from src.database.snippet import Snippets
 
@@ -7,8 +9,9 @@ from src.database.snippet import Snippets
 class TestSnippets(unittest.TestCase):
 
     def setUp(self):
-        self.redis = redislite.Redis("../database/test_spotthebot.rdb", db=2)
-        self.snippets = Snippets(self.redis)
+        logger.info("Starting up snippet database tests.")
+        self.redis = redislite.Redis("test_spotthebot.rdb", db=2)
+        self.snippets = Snippets(redis=self.redis)
 
     def tearDown(self):
         self.redis.flushall()

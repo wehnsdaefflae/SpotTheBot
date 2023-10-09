@@ -6,3 +6,4 @@ uvicorn==0.23.2
 
 loguru~=0.7.2
 redis~=5.0.1
+pandas~=2.1.1

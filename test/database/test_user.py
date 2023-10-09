@@ -7,15 +7,13 @@ from loguru import logger
 
 from src.database.user import StateUpdate, Users
 
-logger.add(sys.stderr, format="{time} {level} {message}", colorize=True, level="INFO")
-logger.add("../logs/test_{time}.log", backtrace=True, diagnose=True, rotation="500 MB", level="DEBUG")
-
 
 class TestUsers(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.redis = redislite.Redis("../database/test_spotthebot.rdb", db=0)
-        self.users = Users(self.redis)
+        logger.info("Setting up user database tests.")
+        self.redis = redislite.Redis("test_spotthebot.rdb", db=0)
+        self.users = Users(redis=self.redis)
 
     def tearDown(self) -> None:
         self.redis.flushdb()

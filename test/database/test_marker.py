@@ -1,6 +1,8 @@
+import sys
 import unittest
 
 import redislite
+from loguru import logger
 
 from src.database.marker import Markers, Field
 
@@ -8,8 +10,10 @@ from src.database.marker import Markers, Field
 class TestMarkers(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.redis = redislite.Redis("../database/test_spotthebot.rdb", db=1)
-        self.markers = Markers(self.redis)
+        logger.info(f"Starting up marker database tests.")
+
+        self.redis = redislite.Redis("test_spotthebot.rdb", db=1)
+        self.markers = Markers(redis=self.redis)
 
     def tearDown(self) -> None:
         self.redis.flushall()

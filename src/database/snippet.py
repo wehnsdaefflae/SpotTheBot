@@ -10,12 +10,12 @@ class Snippet:
     text: str
     source: str
     is_bot: bool
-    metadata: tuple[tuple[str, str], ...]
+    metadata: tuple[tuple[str, str | int], ...]
 
 
 class Snippets:
-    def __init__(self, redis: redislite.Redis):
-        self.redis = redis
+    def __init__(self, redis: redislite.Redis | None = None):
+        self.redis = redis or redislite.Redis("../database/spotthebot.rdb", db=1)
         if not self.redis.exists("snippet_id_counter"):
             self.redis.set("snippet_id_counter", 0)
 
