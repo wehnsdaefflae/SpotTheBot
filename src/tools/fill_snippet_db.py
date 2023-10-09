@@ -5,7 +5,7 @@ from typing import Generator
 
 import pandas
 
-from src.database.snippet import Snippet
+from src.database.snippet import Snippets, Snippet
 
 
 def get_snippets(csv_file_path: pathlib.Path, snippet_id: list[int]) -> Generator[Snippet, None, None]:
@@ -32,6 +32,8 @@ def get_snippets(csv_file_path: pathlib.Path, snippet_id: list[int]) -> Generato
 
 
 def main() -> None:
+    snippet_database = Snippets()
+
     path = pathlib.Path("/home/mark/PycharmProjects/SpotTheBot/data/YouTube Deutschland")
     snippet_id = [0]
 
@@ -50,12 +52,15 @@ def main() -> None:
             snippets = set()
             likes = list()
             for each_snippet in get_snippets(each_file, snippet_id):
+                snippet_database.set_snippet(each_snippet.text, each_snippet.source, each_snippet.is_bot, dict(each_snippet.metadata))
+
                 each_likes = each_snippet.metadata[0][1]
                 likes.append(each_likes)
                 if each_likes < 10:
                     continue
                 snippets.add(each_snippet)
 
+            print(f"Added {len(snippets)} snippets.")
             continue
 
 
