@@ -1,15 +1,25 @@
+import sys
 import unittest
 import redislite
 from typing import Tuple
 
+from loguru import logger
+
 from src.database.user import StateUpdate, Users
+
+logger.add(sys.stderr, format="{time} {level} {message}", colorize=True, level="INFO")
+logger.add("../logs/test_{time}.log", backtrace=True, diagnose=True, rotation="500 MB", level="DEBUG")
 
 
 class TestUsers(unittest.TestCase):
 
     def setUp(self) -> None:
-        self.redis = redislite.Redis("test_spotthebot.rdb", db=0)
+        self.redis = redislite.Redis("../database/test_spotthebot.rdb", db=0)
         self.users = Users(self.redis)
+
+    def tearDown(self) -> None:
+        self.redis.flushdb()
+        self.redis.close()
 
     def create_two_users(self) -> Tuple[int, int]:
         user_name = "John Doe"
@@ -87,10 +97,6 @@ class TestUsers(unittest.TestCase):
         self.assertEqual(to_snippet_id, 200)
         self.assertEqual(current_index, 150)
 
-    def tearDown(self) -> None:
-        self.redis.flushdb()
-        self.redis.close()
-        # os.remove("test_spotthebot.rdb")
 
 
 if __name__ == "__main__":

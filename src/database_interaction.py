@@ -13,9 +13,9 @@ def main() -> None:
     # - [x] do it for markers
     # - [ ] test each class
 
-    user_interface = redislite.Redis("spotthebot.rdb", db=0)
-    snippet_interface = redislite.Redis("spotthebot.rdb", db=1)
-    marker_interface = redislite.Redis("spotthebot.rdb", db=2)
+    user_interface = redislite.Redis("../database/spotthebot.rdb", db=0)
+    snippet_interface = redislite.Redis("../database/spotthebot.rdb", db=1)
+    marker_interface = redislite.Redis("../database/spotthebot.rdb", db=2)
 
     user_db = Users(user_interface)
     snippet_db = Snippets(snippet_interface)

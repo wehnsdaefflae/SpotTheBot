@@ -7,7 +7,7 @@ from loguru import logger
 from redis.client import Pipeline
 
 logger.add(sys.stderr, format="{time} {level} {message}", colorize=True, level="INFO")
-logger.add("file_{time}.log", backtrace=True, diagnose=True, rotation="500 MB", level="DEBUG")
+logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 MB", level="DEBUG")
 
 
 @dataclasses.dataclass(frozen=True)
