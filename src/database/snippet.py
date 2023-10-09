@@ -10,7 +10,7 @@ class Snippet:
     text: str
     source: str
     is_bot: bool
-    metadata: dict[str, str]
+    metadata: tuple[tuple[str, str], ...]
 
 
 class Snippets:
