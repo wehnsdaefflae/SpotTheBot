@@ -6,24 +6,25 @@ import redislite
 
 @dataclasses.dataclass(frozen=True)
 class Snippet:
-    snippet_id: int
     text: str
     source: str
     is_bot: bool
     metadata: tuple[tuple[str, str | int], ...]
+    db_id: int = -1
 
 
 class Snippets:
     def __init__(self, redis: redislite.Redis | None = None):
         self.redis = redis or redislite.Redis("../database/spotthebot.rdb", db=1)
-        if not self.redis.exists("snippet_id_counter"):
-            self.redis.set("snippet_id_counter", 0)
+        if self.redis.exists("snippet_id_counter"):
+            self.snippet_count = self.redis.get("snippet_id_counter")
+        else:
+            self.snippet_count = 0
+            self.redis.set("snippet_id_counter", self.snippet_count)
 
     def set_snippet(self, text: str, source: str, is_bot: bool, metadata: dict[str, str]) -> str:
-        snippet_id = self.redis.incr("snippet_id_counter")
-
         # Store the snippet and its hash
-        snippet_key = f"snippet:{snippet_id}"
+        snippet_key = f"snippet:{self.snippet_count}"
         self.redis.hset(snippet_key, mapping={
             "text": text,
             "source": source,
@@ -31,6 +32,7 @@ class Snippets:
             "metadata": json.dumps(metadata)
         })
 
+        self.snippet_count = self.redis.incr("snippet_id_counter")
         return snippet_key
 
     def get_snippet(self, snippet_id: int) -> Snippet:
@@ -45,7 +47,7 @@ class Snippets:
         }
 
         metadata = json.loads(data.pop("metadata"))
-        return Snippet(snippet_id, data.pop("text"), data.pop("source"), bool(int(data.pop("is_bot"))), metadata)
+        return Snippet(data.pop("text"), data.pop("source"), bool(int(data.pop("is_bot"))), metadata, db_id=snippet_id)
 
     def remove_snippet(self, snippet_id: int) -> None:
         snippet_key = f"snippet:{snippet_id}"

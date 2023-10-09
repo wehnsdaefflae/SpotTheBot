@@ -4,11 +4,12 @@ import pathlib
 from typing import Generator
 
 import pandas
+import redislite
 
 from src.database.snippet import Snippets, Snippet
 
 
-def get_snippets(csv_file_path: pathlib.Path, snippet_id: list[int]) -> Generator[Snippet, None, None]:
+def get_snippets(csv_file_path: pathlib.Path) -> Generator[Snippet, None, None]:
     # get name of containing directory
     dir_name = csv_file_path.parent.name
 
@@ -27,15 +28,14 @@ def get_snippets(csv_file_path: pathlib.Path, snippet_id: list[int]) -> Generato
 
         metadata_dict = {"likes": int(likes), "reply_count": int(reply_count), "time": time_str, "channel": dir_name, "video": video_name}
         metadata = tuple(tuple(each_item) for each_item in metadata_dict.items())
-        yield Snippet(snippet_id[0], comment, f"Kommentar von '{name}' zum YouTube-Video '{video_name}' von {dir_name}", False, metadata)
-        snippet_id[0] += 1
+        yield Snippet(comment, f"Kommentar von '{name}' zum YouTube-Video '{video_name}' von {dir_name}", False, metadata)
 
 
 def main() -> None:
-    snippet_database = Snippets()
+    snippet_database = Snippets(redis=redislite.Redis("../../database/spotthebot.rdb", db=1))
 
     path = pathlib.Path("/home/mark/PycharmProjects/SpotTheBot/data/YouTube Deutschland")
-    snippet_id = [0]
+    snippets_added = 0
 
     for each_dir in sorted(path.iterdir()):
         if not each_dir.is_dir():
@@ -49,19 +49,14 @@ def main() -> None:
                 continue
 
             print(each_file)
-            snippets = set()
-            likes = list()
-            for each_snippet in get_snippets(each_file, snippet_id):
-                snippet_database.set_snippet(each_snippet.text, each_snippet.source, each_snippet.is_bot, dict(each_snippet.metadata))
-
+            for each_snippet in get_snippets(each_file):
                 each_likes = each_snippet.metadata[0][1]
-                likes.append(each_likes)
-                if each_likes < 10:
+                if each_likes < 10 or len(each_snippet.text) < 250:
                     continue
-                snippets.add(each_snippet)
+                snippet_database.set_snippet(each_snippet.text, each_snippet.source, each_snippet.is_bot, dict(each_snippet.metadata))
+                snippets_added += 1
 
-            print(f"Added {len(snippets)} snippets.")
-            continue
+    print(f"Added {snippets_added} snippets.")
 
 
 if __name__ == "__main__":
