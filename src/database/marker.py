@@ -1,5 +1,4 @@
 import sys
-import time
 from enum import Enum
 
 import redislite

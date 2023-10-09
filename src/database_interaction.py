@@ -1,8 +1,8 @@
 import redislite
 
-from database.marker import Markers
-from database.snippet import Snippets
-from database.user import Users
+from src.database.marker import Markers
+from src.database.snippet import Snippets
+from src.database.user import Users
 
 
 def main() -> None:

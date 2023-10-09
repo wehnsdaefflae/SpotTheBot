@@ -44,13 +44,14 @@ class Users:
             "last_positives_rate": .5,
             "last_negatives_rate": .5
         })
-    
+        self.redis.expire(user_key, self.expiration_seconds)
+
         name_hash_key = f"name_hash:{secret_name_hash}"
         self.redis.set(name_hash_key, user_id)
-
-        self.redis.expire(user_key, self.expiration_seconds)
         self.redis.expire(name_hash_key, self.expiration_seconds)
-    
+
+        logger.info(f"Created user {user_id} with name hash {secret_name_hash}.")
+
         if invited_by_user_id is not None:
             self.make_friends(invited_by_user_id, user_id)
     
