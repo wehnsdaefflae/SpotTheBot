@@ -5,6 +5,7 @@ from typing import Generator
 
 import pandas
 import redislite
+import bs4
 
 from src.database.snippet import Snippets, Snippet
 
@@ -20,9 +21,22 @@ def get_snippets(csv_file_path: pathlib.Path) -> Generator[Snippet, None, None]:
 
     csv_data = pandas.read_csv(csv_file_path.as_posix())
     for i, each_row in csv_data.iterrows():
-        name = each_row["Name"]
-        comment = each_row["Comment"]
-        time_str = each_row["Time"]
+        comment_raw = each_row["Comment"]
+        if not isinstance(comment_raw, str):
+            continue
+        soup = bs4.BeautifulSoup(comment_raw, "html.parser")
+        comment = soup.get_text().strip()
+
+        name_raw = each_row["Name"]
+        if not isinstance(name_raw, str):
+            continue
+        name = name_raw.strip()
+
+        time_str_raw = each_row["Time"]
+        if not isinstance(time_str_raw, str):
+            continue
+        time_str = time_str_raw.strip()
+
         likes = each_row["Likes"]
         reply_count = each_row["Reply Count"]
 
@@ -53,6 +67,7 @@ def main() -> None:
                 each_likes = each_snippet.metadata[0][1]
                 if each_likes < 10 or len(each_snippet.text) < 250:
                     continue
+
                 snippet_database.set_snippet(each_snippet.text, each_snippet.source, each_snippet.is_bot, dict(each_snippet.metadata))
                 snippets_added += 1
 
