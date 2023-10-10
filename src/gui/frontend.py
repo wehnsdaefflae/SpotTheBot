@@ -8,8 +8,13 @@ from fastapi import FastAPI
 from nicegui import ui, app
 from nicegui.elements.label import Label
 
-from src.tools.names import generate_name
+from src.tools.names import generate_name, generate_superhero_name
 from src.tools.misc import hex_color_segmentation
+
+
+@dataclasses.dataclass
+class SecretName:
+    name: str = ""
 
 
 @dataclasses.dataclass(frozen=True)
@@ -159,28 +164,33 @@ def get_random_name() -> str:
     # return f"[name {random.randint(1, 100)}]"
 
 
-def randomize_name(label: Label) -> None:
-    label.text = get_random_name()
+def randomize_name(label_name: Label, secret_name: SecretName) -> None:
+    label_name.text = generate_superhero_name()
+    secret_name.name = generate_name()
 
 
 def create_footer() -> None:
     with ui.footer() as footer:
         with ui.row() as row:
-            label_aces = ui.link("check out top aces", "/aces")
+            label_aces = ui.link("check out friends", "/friends")
             label_results = ui.link("check out results", "/results")
             label_about = ui.link("about", "/about")
 
 
-def start_game(user_name: str) -> None:
+def start_game(user_name: str, secret_name: SecretName, checkbox: ui.checkbox) -> None:
     app.storage.user["user_name"] = user_name
+    app.storage.user["secure"] = checkbox.value
+    if checkbox.value:
+        create_vcard(secret_name)
+        checkbox.value = False
     ui.open("/game")
 
 
-@ui.page("/aces")
+@ui.page("/friends")
 def aces_page() -> None:
     with ui.header(elevated=True):
         link_home = ui.link("home", "/")
-        label_title = ui.label("Top Aces")
+        label_title = ui.label("Friends")
 
     for i in range(10):
         ui.label(f"[ace {i + 1}] [accuracy]")
@@ -318,23 +328,77 @@ def game_page() -> None:
     timer = ui.timer(1, increment_counter)
 
 
+def create_vcard(secret_name: SecretName) -> None:
+    with open("contact.vcf", mode="w") as file:
+        file.write(f"BEGIN:VCARD\n")
+        file.write(f"VERSION:3.0\n")
+        file.write(f"N:{secret_name.name}\n")
+        file.write(f"FN:{secret_name.name}\n")
+        file.write(f"ORG:spotthebot.app\n")
+        file.write(f"END:VCARD\n")
+
+    ui.download("contact.vcf")
+
+
+async def logout(name: str) -> None:
+    with ui.dialog() as dialog, ui.card():
+        ui.label(f"Hey {name}! Are you sure you want to log out?")
+        with ui.row() as button_row:
+            ui.button("yes", on_click=lambda: dialog.submit("yes"))
+            ui.button("no", on_click=lambda: dialog.submit("no"))
+
+    result = await dialog
+    if result == "yes":
+        app.storage.user.pop("user_name", None)
+        ui.open("/")
+
+
+def invite(public_name: str, secret_name: str) -> None:
+    with ui.dialog() as dialog, ui.card():
+        ui.label(f"Send them this link to add them to your friends:")
+        ui.label(f"spotthebot.app/invite?=3489fn5f247g25g")
+
+    dialog.open()
+
+
 @ui.page("/")
 def index_page() -> None:
     with ui.column() as column:
-        title_label = ui.label("Look out for")
+        title_label = ui.label("Look out for robots!")
         title_label.classes("text-h4 font-bold text-grey-8")
 
         for i in range(4):
             each_indicator_label = ui.label(f"[indicator {i + 1}] [accuracy]")
 
-        user_name = app.storage.user.get("user_name", get_random_name())
+        user_name = app.storage.user.get("user_name", generate_superhero_name())
+        # get_random_name
 
-        button_start = ui.button("SPOT THE BOT", on_click=lambda: start_game(label_name.text))
+        secret_name = SecretName()
 
-        label_welcome = ui.label(f"as")
+        button_start = ui.button("SPOT THE BOT", on_click=lambda: start_game(label_name.text, secret_name, checkbox))
+        checkbox = ui.checkbox("Secure secret identity.", value=app.storage.user.get("secure", True))
+
+        label_welcome = ui.label(f"as the super hero")
+
         label_name = ui.label(user_name)
         label_name.classes("cursor-pointer")
-        label_name.on("click", lambda: randomize_name(label_name))
+        label_name.on("click", lambda: randomize_name(label_name, secret_name))
+
+        ui.label(f"or")
+
+        invite_button = ui.button("Invite a friend", on_click=lambda: invite(user_name, secret_name.name))
+
+        ui.label(f"or")
+
+        enter_text = ui.input("take on your secret identity")
+
+        ui.label(f"or")
+
+        label_logout = ui.label("[logout]")
+        label_logout.classes("cursor-pointer")
+        label_logout.on("click", lambda: logout(label_name.text))
+
+        # enter secret identity
 
         create_footer()
 
