@@ -45,7 +45,11 @@ def create_full_name(
     return ' '.join(name_parts)
 
 
-def generate_name() -> str:
+def get_seed(dim: int) -> tuple[float, ...]:
+    return tuple(random.random() for _ in range(dim))
+
+
+def generate_name(seed: tuple[float, ...] | None = None) -> str:
     titles = [
         None,
         "Mr.", "Mrs.", "Miss", "Ms.", "Dr.",
@@ -108,13 +112,22 @@ def generate_name() -> str:
     ]
     # len = 23
 
-    title = random.choice(titles)
-    first_name_prefix = random.choice(first_name_prefixes)
-    first_name_suffix = random.choice(first_name_suffixes)
-    middle_name = random.choice(middle_names)
-    surname_prefix = random.choice(surname_prefixes)
-    surname_suffix = random.choice(surname_suffixes)
-    suffix = random.choice(suffixes)
+    if seed is None:
+        title = random.choice(titles)
+        first_name_prefix = random.choice(first_name_prefixes)
+        first_name_suffix = random.choice(first_name_suffixes)
+        middle_name = random.choice(middle_names)
+        surname_prefix = random.choice(surname_prefixes)
+        surname_suffix = random.choice(surname_suffixes)
+        suffix = random.choice(suffixes)
+    else:
+        title = titles[int(seed[0] * len(titles))]
+        first_name_prefix = first_name_prefixes[int(seed[1] * len(first_name_prefixes))]
+        first_name_suffix = first_name_suffixes[int(seed[2] * len(first_name_suffixes))]
+        middle_name = middle_names[int(seed[3] * len(middle_names))]
+        surname_prefix = surname_prefixes[int(seed[4] * len(surname_prefixes))]
+        surname_suffix = surname_suffixes[int(seed[5] * len(surname_suffixes))]
+        suffix = suffixes[int(seed[6] * len(suffixes))]
 
     full_name = create_full_name(
         title,

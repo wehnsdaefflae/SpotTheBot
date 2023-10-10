@@ -1,5 +1,6 @@
 import dataclasses
 import hashlib
+import json
 import sys
 import time
 
@@ -7,7 +8,7 @@ import redislite
 from loguru import logger
 from redis.client import Pipeline
 
-from src.frontend import get_random_name
+from src.names import get_seed, generate_name
 
 logger.add(sys.stderr, format="{time} {level} {message}", colorize=True, level="INFO")
 logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 MB", level="DEBUG")
@@ -28,6 +29,7 @@ class User:
     created_at: float
     last_positives_rate: float
     last_negatives_rate: float
+    face_seed: tuple[float, ...]  # Face, Ears, Mouth, Nose, Eyes, Hair, Accessory
     friends: set[int]
     db_id: int = -1
 
@@ -50,7 +52,11 @@ class Users:
         self.redis.expire(friends_key, self.expiration_seconds)
 
     def create_user(self, invited_by_user_id: int | None = None) -> str:
-        secret_name = get_random_name()
+        name_seed = get_seed(7)
+        secret_name = generate_name(seed=name_seed)
+
+        face_seed = get_seed(7)
+
         secret_name_encoded = secret_name.encode()
         secret_name_hash = hashlib.sha256(secret_name_encoded).hexdigest()
 
@@ -65,7 +71,8 @@ class Users:
             "invited_by_user_id": invited_by_user_id or -1,
             "created_at": time.time(),
             "last_positives_rate": .5,
-            "last_negatives_rate": .5
+            "last_negatives_rate": .5,
+            "face_seed": json.dumps(face_seed),
         })
         self.redis.set(name_hash_key, user_id)
         if invited_by_user_id is not None:
@@ -103,6 +110,7 @@ class Users:
             data.pop("created_at"),
             data.pop("last_positives_rate"),
             data.pop("last_negatives_rate"),
+            json.loads(data.pop("face_seed")),
             friends, db_id=user_id
         )
 
