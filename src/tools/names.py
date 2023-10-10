@@ -54,6 +54,82 @@ def generate_face(seed: tuple[float, ...] | None = None) -> tuple[int, ...]:
     return tuple(int(_x * 20) for _x in seed)
 
 
+def generate_superhero_name() -> str:
+    """
+    Generates a superhero name based on provided descriptors, core identities, and combination attributes.
+
+    :return: Generated superhero name
+    """
+
+    attributes = [
+        "Iron", "Mighty", "Golden", "Red", "Green", "Silver",
+        "Swift", "Dark", "Bright", "Thunder", "Electric",
+        "Fire", "Steel", "Titanium", "Cosmic", "Invisible",
+        "Aqua", "Solar", "Lunar", "Atomic"]
+
+    nouns = [
+        "Panther", "Widow", "Hawk", "Rider", "Giant",
+        "Lantern", "Phoenix", "Falcon", "Titan", "Archer",
+        "Sorcerer", "Sentinel", "Cyborg", "Mystic",
+        "Thunderer", "Guardian", "Prowler", "Specter",
+        "Mariner", "Templar"]
+
+    actions = [
+        "Flying", "Running", "Jumping", "Blazing", "Shadow",
+        "Dashing", "Soaring", "Pouncing", "Sprinting", "Vanishing",
+        "Shielding", "Charging", "Striking", "Summoning", "Slinging",
+        "Crafting", "Projecting", "Blinking", "Dueling", "Channeling"
+    ]
+
+    locations = [
+        "Wakanda", "Gotham", "Asgard", "Olympus", "The Future", "Krypton",
+        "Atlantis", "Themyscira", "Metropolis", "The Multiverse", "The Shadow Realm",
+        "The Phantom Zone", "The Quantum Realm", "New Genesis", "Latveria",
+        "Xandar", "Knowhere", "Midgard", "Oa", "The Negative Zone"
+    ]
+
+    titles = [
+        "Captain", "Doctor", "Mr.", "Ms.", "Lady",
+        "Sir", "Master", "Lord", "Baron", "Baroness",
+        "Prince", "Princess", "King", "Queen",
+        "Knight", "Guardian", "Commander", "Chief", "Major", "Admiral"
+    ]
+
+    # Decide on the structure of the name based on different patterns
+    structure = random.choice(["N", "Nn", "AN", "ANn", "ActN", "ActNn", "NofL", "TN", "TNn"])
+
+    if structure == "N":
+        return random.choice(nouns)
+    if structure == "Nn":
+        first_noun = random.choice(nouns)
+        second_noun = random.choice(nouns).lower()
+        return f"{first_noun}{second_noun}"
+    if structure == "AN":
+        return f"{random.choice(attributes)} {random.choice(nouns)}"
+    if structure == "ANn":
+        attribute = random.choice(attributes)
+        first_noun = random.choice(nouns)
+        second_noun = random.choice(nouns).lower()
+        return f"{attribute} {first_noun}{second_noun}"
+    if structure == "ActN":
+        return f"{random.choice(actions)} {random.choice(nouns)}"
+    if structure == "ActNn":
+        action = random.choice(actions)
+        first_noun = random.choice(nouns)
+        second_noun = random.choice(nouns).lower()
+        return f"{action} {first_noun}{second_noun}"
+    if structure == "NofL":
+        return f"{random.choice(nouns)} of {random.choice(locations)}"
+    if structure == "TN":
+        return f"{random.choice(titles)} {random.choice(nouns)}"
+
+    # "TNn"
+    title = random.choice(titles)
+    first_noun = random.choice(nouns)
+    second_noun = random.choice(nouns).lower()
+    return f"{title} {first_noun}{second_noun}"
+
+
 def generate_name(seed: tuple[float, ...] | None = None) -> str:
     titles = [
         None,
@@ -145,3 +221,8 @@ def generate_name(seed: tuple[float, ...] | None = None) -> str:
     )
 
     return full_name
+
+
+if __name__ == "__main__":
+    for _ in range(10):
+        print(generate_superhero_name())
