@@ -1,7 +1,5 @@
 import random
 
-from misc import uniform_segmentation
-
 
 def create_full_name(
         title: str | None,

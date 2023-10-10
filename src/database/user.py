@@ -1,10 +1,13 @@
 import dataclasses
+import hashlib
 import sys
 import time
 
 import redislite
 from loguru import logger
 from redis.client import Pipeline
+
+from src.frontend import get_random_name
 
 logger.add(sys.stderr, format="{time} {level} {message}", colorize=True, level="INFO")
 logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 MB", level="DEBUG")
@@ -18,6 +21,17 @@ class StateUpdate:
     false_negatives: int
 
 
+@dataclasses.dataclass(frozen=True)
+class User:
+    secret_name_hash: str
+    invited_by_user_id: int
+    created_at: float
+    last_positives_rate: float
+    last_negatives_rate: float
+    friends: set[int]
+    db_id: int = -1
+
+
 class Users:
     def __init__(self, redis: redislite.Redis | None = None, expiration_seconds: int = 60 * 60 * 24 * 7 * 30 * 6) -> None:
         self.redis = redis or redislite.Redis("../database/spotthebot.rdb", db=0)
@@ -26,13 +40,22 @@ class Users:
         if not self.redis.exists("user_id_counter"):
             self.redis.set("user_id_counter", 0)
 
-    def _reset_user_expiration(self, user_key: str) -> None:
-        secret_name_hash = self.redis.hget(user_key, "secret_name_hash")
+    def _reset_user_expiration(self, user_key: str, name_hash_key: str | None = None) -> None:
+        if name_hash_key is None:
+            secret_name_hash = self.redis.hget(user_key, "secret_name_hash")
+            name_hash_key = f"name_hash:{secret_name_hash}"
         self.redis.expire(user_key, self.expiration_seconds)
-        self.redis.expire(f"name_hash:{secret_name_hash}", self.expiration_seconds)
+        self.redis.expire(name_hash_key, self.expiration_seconds)
+        friends_key = f"{user_key}:friends"
+        self.redis.expire(friends_key, self.expiration_seconds)
 
-    def create_user(self, secret_name_hash: str, invited_by_user_id: int | None = None) -> str:
-        if self.redis.exists(f"name_hash:{secret_name_hash}"):
+    def create_user(self, invited_by_user_id: int | None = None) -> str:
+        secret_name = get_random_name()
+        secret_name_encoded = secret_name.encode()
+        secret_name_hash = hashlib.sha256(secret_name_encoded).hexdigest()
+
+        name_hash_key = f"name_hash:{secret_name_hash}"
+        if self.redis.exists(name_hash_key):
             raise ValueError(f"User with name hash {secret_name_hash} already exists.")
     
         user_id = self.redis.incr("user_id_counter")
@@ -44,18 +67,44 @@ class Users:
             "last_positives_rate": .5,
             "last_negatives_rate": .5
         })
-        self.redis.expire(user_key, self.expiration_seconds)
+        self.redis.set(name_hash_key, user_id)
+        if invited_by_user_id is not None:
+            self.make_friends(invited_by_user_id, user_id)  # also initializes expiration
+
+        logger.info(f"Created user {user_id}.")
+        return secret_name
+
+    def get_user(self, secret_name_hash: str) -> User:
+        # user = get_user('JohnDoe')
+        # print(user)
+        # Outputs:
+        # User(secret_name_hash='JohnDoe', invited_by_user_id=243, created_at=1626374367.0, last_positives_rate=0.5,
+        # last_negatives_rate=0.5, friends={482, 268})
 
         name_hash_key = f"name_hash:{secret_name_hash}"
-        self.redis.set(name_hash_key, user_id)
-        self.redis.expire(name_hash_key, self.expiration_seconds)
+        if not self.redis.exists(name_hash_key):
+            raise KeyError(f"User with name hash {secret_name_hash} does not exist.")
 
-        logger.info(f"Created user {user_id} with name hash {secret_name_hash}.")
+        user_id = int(self.redis.get(name_hash_key))
+        user_key = f"user:{user_id}"
+        if not self.redis.exists(user_key):
+            raise KeyError(f"User {user_id} does not exist.")
 
-        if invited_by_user_id is not None:
-            self.make_friends(invited_by_user_id, user_id)
-    
-        return user_key
+        result = self.redis.hgetall(user_key)
+        data = {
+            key.decode(): value.decode()
+            for key, value in result.items()
+        }
+
+        friends = self.get_friends(user_id)
+        return User(
+            data.pop("secret_name_hash"),
+            data.pop("invited_by_user_id"),
+            data.pop("created_at"),
+            data.pop("last_positives_rate"),
+            data.pop("last_negatives_rate"),
+            friends, db_id=user_id
+        )
 
     def delete_user(self, user_id: int) -> None:
         # delete_user(243)

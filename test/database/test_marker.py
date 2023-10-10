@@ -1,3 +1,4 @@
+import os
 import unittest
 
 import redislite
@@ -9,8 +10,13 @@ from src.database.marker import Markers, Field
 class TestMarkers(unittest.TestCase):
 
     def setUp(self) -> None:
-        logger.info(f"Starting up marker database tests.")
+        print("deleting last test database...")
+        if os.path.isfile("test_spotthebot.rdb"):
+            os.remove("test_spotthebot.rdb")
+        if os.path.isfile("test_spotthebot.rdb.settings"):
+            os.remove("test_spotthebot.rdb.settings")
 
+        logger.info(f"Starting up marker database tests.")
         self.redis = redislite.Redis("test_spotthebot.rdb", db=1)
         self.markers = Markers(redis=self.redis)
 

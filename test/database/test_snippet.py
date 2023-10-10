@@ -1,3 +1,4 @@
+import os
 import sys
 import unittest
 import redislite
@@ -9,6 +10,12 @@ from src.database.snippet import Snippets
 class TestSnippets(unittest.TestCase):
 
     def setUp(self):
+        print("deleting last test database...")
+        if os.path.isfile("test_spotthebot.rdb"):
+            os.remove("test_spotthebot.rdb")
+        if os.path.isfile("test_spotthebot.rdb.settings"):
+            os.remove("test_spotthebot.rdb.settings")
+
         logger.info("Starting up snippet database tests.")
         self.redis = redislite.Redis("test_spotthebot.rdb", db=2)
         self.snippets = Snippets(redis=self.redis)
