@@ -8,7 +8,7 @@ import redislite
 from loguru import logger
 from redis.client import Pipeline
 
-from src.names import get_seed, generate_name
+from src.tools.names import get_seed, generate_name, generate_face
 
 logger.add(sys.stderr, format="{time} {level} {message}", colorize=True, level="INFO")
 logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 MB", level="DEBUG")
@@ -23,14 +23,38 @@ class StateUpdate:
 
 
 @dataclasses.dataclass(frozen=True)
-class User:
-    secret_name_hash: str
-    invited_by_user_id: int
-    created_at: float
+class Face:
+    shape: int
+    ears: int
+    mouth: int
+    nose: int
+    eyes: int
+    hair: int
+    accessory: int
+
+
+@dataclasses.dataclass(frozen=True)
+class State:
     last_positives_rate: float
     last_negatives_rate: float
-    face_seed: tuple[float, ...]  # Face, Ears, Mouth, Nose, Eyes, Hair, Accessory
-    friends: set[int]
+
+
+@dataclasses.dataclass(frozen=True)
+class Friend:
+    db_id: int
+    name: str
+
+
+@dataclasses.dataclass(frozen=True)
+class User:
+    public_name: str
+    secret_name_hash: str
+    face: Face
+    invited_by_user_id: int
+    created_at: float
+    state: State
+
+    friends: set[Friend]
     db_id: int = -1
 
 
@@ -46,16 +70,18 @@ class Users:
         if name_hash_key is None:
             secret_name_hash = self.redis.hget(user_key, "secret_name_hash")
             name_hash_key = f"name_hash:{secret_name_hash}"
+
         self.redis.expire(user_key, self.expiration_seconds)
         self.redis.expire(name_hash_key, self.expiration_seconds)
         friends_key = f"{user_key}:friends"
         self.redis.expire(friends_key, self.expiration_seconds)
 
-    def create_user(self, invited_by_user_id: int | None = None) -> str:
+    def create_user(self, public_name: str, invited_by_user_id: int | None = None) -> str:
         name_seed = get_seed(7)
         secret_name = generate_name(seed=name_seed)
 
         face_seed = get_seed(7)
+        face = generate_face(seed=face_seed)
 
         secret_name_encoded = secret_name.encode()
         secret_name_hash = hashlib.sha256(secret_name_encoded).hexdigest()
@@ -67,12 +93,13 @@ class Users:
         user_id = self.redis.incr("user_id_counter")
         user_key = f"user:{user_id}"
         self.redis.hset(user_key, mapping={
+            "public_name": public_name,
             "secret_name_hash": secret_name_hash,
+            "face": json.dumps(face),
             "invited_by_user_id": invited_by_user_id or -1,
             "created_at": time.time(),
             "last_positives_rate": .5,
             "last_negatives_rate": .5,
-            "face_seed": json.dumps(face_seed),
         })
         self.redis.set(name_hash_key, user_id)
         if invited_by_user_id is not None:
@@ -104,15 +131,26 @@ class Users:
         }
 
         friends = self.get_friends(user_id)
+        state = State(data.pop("last_positives_rate"), data.pop("last_negatives_rate"))
         return User(
+            data.pop("public_name"),
             data.pop("secret_name_hash"),
+            json.loads(data.pop("face")),
             data.pop("invited_by_user_id"),
             data.pop("created_at"),
-            data.pop("last_positives_rate"),
-            data.pop("last_negatives_rate"),
-            json.loads(data.pop("face_seed")),
+            state,
             friends, db_id=user_id
         )
+
+    def get_friend(self, friend_id: int) -> Friend:
+        # friend = get_friend(345980)
+        # print(friend)  # Outputs: Friend(db_id=345980, name='JohnDoe')
+        user_key = f"user:{friend_id}"
+        if not self.redis.exists(user_key):
+            raise KeyError(f"User {friend_id} does not exist.")
+
+        public_name = self.redis.hget(user_key, "public_name")
+        return Friend(friend_id, str(public_name))
 
     def delete_user(self, user_id: int) -> None:
         # delete_user(243)
@@ -122,8 +160,8 @@ class Users:
     
         friends = self.get_friends(user_id)
         with self.redis.pipeline() as pipe:
-            for each_friend_id in friends:
-                self._remove_friend_unidirectional(each_friend_id, user_id, pipeline=pipe)
+            for each_friend in friends:
+                self._remove_friend_unidirectional(each_friend.db_id, user_id, pipeline=pipe)
             pipe.execute()
     
         secret_name_hash = self.redis.hget(user_key, "secret_name_hash")
@@ -137,27 +175,27 @@ class Users:
         user_key = f"user:{user_id}"
         if not self.redis.exists(user_key):
             raise KeyError(f"User {user_id} does not exist.")
-    
-        users_friends_key = f"{user_key}:friends"
-        self.redis.sadd(users_friends_key, friend_id)
-    
+
         friend_key = f"user:{friend_id}"
         if not self.redis.exists(friend_key):
             raise KeyError(f"User {friend_id} does not exist.")
-    
+
+        users_friends_key = f"{user_key}:friends"
         friends_friends_key = f"{friend_key}:friends"
+
+        self.redis.sadd(users_friends_key, friend_id)
         self.redis.sadd(friends_friends_key, user_id)
-    
+
         self._reset_user_expiration(user_key)
 
     def _remove_friend_unidirectional(self, user_id: int, friend_id: int, pipeline: Pipeline | None) -> None:
         # remove_friend_unidirectional(234, 523)
         users_friends_key = f"user:{user_id}:friends"
-    
+
         if pipeline is None:
             self.redis.srem(users_friends_key, friend_id)
         else:
-            pipeline.srem(f"user:{user_id}:friends", friend_id)
+            pipeline.srem(users_friends_key, friend_id)
 
     def remove_friendship(self, user_id: int, friend_id: int) -> None:
         # remove_friendship(234, 523)
@@ -188,12 +226,18 @@ class Users:
     
         self._reset_user_expiration(user_key)
 
-    def get_friends(self, user_id: int) -> set[int]:
+    def get_friends(self, user_id: int) -> set[Friend]:
         # friends = get_friends(345980)
         # print(friends)  # Outputs: {482, 268}
-        friends_key = f"user:{user_id}:friends"
-        friends = self.redis.smembers(friends_key)
-        return set(int(friend_id) for friend_id in friends)
+        user_key = f"user:{user_id}"
+        users_friends_key = f"{user_key}:friends"
+
+        friends = set()
+        for friend_id_byte in self.redis.smembers(users_friends_key):
+            each_friend = self.get_friend(int(friend_id_byte))
+            friends.add(each_friend)
+
+        return friends
     
     def set_user_progress(self, user_key: str, current_seed: int, from_snippet_id: int, to_snippet_id: int, current_index: int) -> None:
         progress_key = f"{user_key}:progress"

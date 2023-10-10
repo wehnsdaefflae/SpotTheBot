@@ -27,8 +27,8 @@ class TestUsers(unittest.TestCase):
         self.redis.close()
 
     def create_two_users(self) -> Tuple[int, int]:
-        secret_name_user = self.users.create_user()
-        secret_name_friend = self.users.create_user()
+        secret_name_user = self.users.create_user("Jane Doe")
+        secret_name_friend = self.users.create_user("John Doe")
 
         name_hash_user = hashlib.sha256(secret_name_user.encode()).hexdigest()
         name_hash_friend = hashlib.sha256(secret_name_friend.encode()).hexdigest()
@@ -42,13 +42,13 @@ class TestUsers(unittest.TestCase):
         return user_id, friend_id
 
     def test_create_user(self) -> None:
-        secret_name = self.users.create_user()
+        secret_name = self.users.create_user("John Doe")
         name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
         user = self.users.get_user(name_hash)
         self.assertEqual(user.secret_name_hash, name_hash)
 
     def test_delete_user(self) -> None:
-        secret_name = self.users.create_user()
+        secret_name = self.users.create_user("John Doe")
         name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
         user = self.users.get_user(name_hash)
         user_id = user.db_id
@@ -62,8 +62,8 @@ class TestUsers(unittest.TestCase):
 
         self.users.make_friends(user_id, friend_id)
 
-        self.assertTrue(friend_id in self.users.get_friends(user_id))
-        self.assertTrue(user_id in self.users.get_friends(friend_id))
+        self.assertTrue(friend_id in {each_friend.db_id for each_friend in self.users.get_friends(user_id)})
+        self.assertTrue(user_id in {each_friend.db_id for each_friend in self.users.get_friends(friend_id)})
 
     def test_remove_friendship(self) -> None:
         user_id, friend_id = self.create_two_users()
@@ -71,11 +71,11 @@ class TestUsers(unittest.TestCase):
         self.users.make_friends(user_id, friend_id)
         self.users.remove_friendship(user_id, friend_id)
 
-        self.assertFalse(friend_id in self.users.get_friends(user_id))
-        self.assertFalse(user_id in self.users.get_friends(friend_id))
+        self.assertFalse(friend_id in {each_friend.db_id for each_friend in self.users.get_friends(user_id)})
+        self.assertFalse(user_id in {each_friend.db_id for each_friend in self.users.get_friends(friend_id)})
 
     def test_update_user_state(self) -> None:
-        secret_name = self.users.create_user()
+        secret_name = self.users.create_user("John Doe")
         name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
         user = self.users.get_user(name_hash)
         user_id = user.db_id
@@ -94,11 +94,11 @@ class TestUsers(unittest.TestCase):
         user_id, friend_id = self.create_two_users()
 
         self.users.make_friends(user_id, friend_id)
-        friends: set[int] = self.users.get_friends(user_id)
-        self.assertTrue(friend_id in friends)
+        friends = self.users.get_friends(user_id)
+        self.assertTrue(friend_id in {each_friend.db_id for each_friend in friends})
 
     def test_set_user_progress(self) -> None:
-        secret_name = self.users.create_user()
+        secret_name = self.users.create_user("John Doe")
         name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
         user = self.users.get_user(name_hash)
         user_id = user.db_id

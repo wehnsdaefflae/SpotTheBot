@@ -8,8 +8,8 @@ from fastapi import FastAPI
 from nicegui import ui, app
 from nicegui.elements.label import Label
 
-from src.names import generate_name
-from src.misc import hex_color_segmentation
+from src.tools.names import generate_name
+from src.tools.misc import hex_color_segmentation
 
 
 @dataclasses.dataclass(frozen=True)

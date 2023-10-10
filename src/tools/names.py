@@ -49,6 +49,11 @@ def get_seed(dim: int) -> tuple[float, ...]:
     return tuple(random.random() for _ in range(dim))
 
 
+def generate_face(seed: tuple[float, ...] | None = None) -> tuple[int, ...]:
+    # todo: replace with actual face parts
+    return tuple(int(_x * 20) for _x in seed)
+
+
 def generate_name(seed: tuple[float, ...] | None = None) -> str:
     titles = [
         None,
