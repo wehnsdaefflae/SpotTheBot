@@ -1,8 +1,12 @@
 # coding=utf-8
 import dataclasses
+import datetime
+import os
 import random
 import re
 from typing import Callable, Coroutine
+
+import tempfile
 
 from fastapi import FastAPI
 from nicegui import ui, app
@@ -181,8 +185,9 @@ def start_game(user_name: str, secret_name: SecretName, checkbox: ui.checkbox) -
     app.storage.user["user_name"] = user_name
     app.storage.user["secure"] = checkbox.value
     if checkbox.value:
-        create_vcard(secret_name)
+        file_name = create_vcard(secret_name)
         checkbox.value = False
+        # os.remove(file_name)
     ui.open("/game")
 
 
@@ -328,16 +333,24 @@ def game_page() -> None:
     timer = ui.timer(1, increment_counter)
 
 
-def create_vcard(secret_name: SecretName) -> None:
-    with open("contact.vcf", mode="w") as file:
+def create_vcard(secret_name: SecretName) -> str:
+    ram_disk_path = "/dev/shm/"
+    now = datetime.datetime.now()
+    with tempfile.NamedTemporaryFile(dir=ram_disk_path, mode="w", suffix=".vcf", delete=False) as file:
+        # with open("contact.vcf", mode="w") as file:
         file.write(f"BEGIN:VCARD\n")
         file.write(f"VERSION:3.0\n")
         file.write(f"N:{secret_name.name}\n")
         file.write(f"FN:{secret_name.name}\n")
-        file.write(f"ORG:spotthebot.app\n")
+        file.write(f"ORG:Spot The Bot\n")
+        file.write(f"ROLE:Super Hero Private Detective\n")
+        file.write(f"REV:{now.strftime('%Y%m%dT%H%M%SZ')}\n")
+        file.write(f"URL:https://spotthebot.app\n")
         file.write(f"END:VCARD\n")
 
-    ui.download("contact.vcf")
+        ui.download(file.name, filename="spotthebot_secret_identity.vcf")
+
+    return file.name
 
 
 async def logout(name: str) -> None:
@@ -350,6 +363,7 @@ async def logout(name: str) -> None:
     result = await dialog
     if result == "yes":
         app.storage.user.pop("user_name", None)
+        app.storage.user.pop("secure", None)
         ui.open("/")
 
 
@@ -376,7 +390,7 @@ def index_page() -> None:
         secret_name = SecretName()
 
         button_start = ui.button("SPOT THE BOT", on_click=lambda: start_game(label_name.text, secret_name, checkbox))
-        checkbox = ui.checkbox("Secure secret identity.", value=app.storage.user.get("secure", True))
+        checkbox = ui.checkbox("Secure secret identity as phone contact.", value=app.storage.user.get("secure", True))
 
         label_welcome = ui.label(f"as the super hero")
 
