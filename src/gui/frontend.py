@@ -336,19 +336,26 @@ def game_page() -> None:
 def create_vcard(secret_name: SecretName) -> str:
     ram_disk_path = "/dev/shm/"
     now = datetime.datetime.now()
-    with tempfile.NamedTemporaryFile(dir=ram_disk_path, mode="w", suffix=".vcf", delete=False) as file:
-        # with open("contact.vcf", mode="w") as file:
-        file.write(f"BEGIN:VCARD\n")
-        file.write(f"VERSION:3.0\n")
-        file.write(f"N:{secret_name.name}\n")
-        file.write(f"FN:{secret_name.name}\n")
-        file.write(f"ORG:Spot The Bot\n")
-        file.write(f"ROLE:Super Hero Private Detective\n")
-        file.write(f"REV:{now.strftime('%Y%m%dT%H%M%SZ')}\n")
-        file.write(f"URL:https://spotthebot.app\n")
-        file.write(f"END:VCARD\n")
+    on_mobile = True
+    if on_mobile:
+        with tempfile.NamedTemporaryFile(dir=ram_disk_path, mode="w", suffix=".vcf", delete=False) as file:
+            # with open("contact.vcf", mode="w") as file:
+            file.write(f"BEGIN:VCARD\n")
+            file.write(f"VERSION:3.0\n")
+            file.write(f"N:{secret_name.name}\n")
+            file.write(f"FN:{secret_name.name}\n")
+            file.write(f"ORG:Spot The Bot\n")
+            file.write(f"ROLE:Super Hero Private Detective\n")
+            file.write(f"REV:{now.strftime('%Y%m%dT%H%M%SZ')}\n")
+            file.write(f"URL:https://spotthebot.app\n")
+            file.write(f"END:VCARD\n")
 
-        ui.download(file.name, filename="spotthebot_secret_identity.vcf")
+            ui.download(file.name, filename="spotthebot_secret_identity.vcf")
+
+    else:
+        with tempfile.NamedTemporaryFile(dir=ram_disk_path, mode="w", suffix=".txt", delete=False) as file:
+            file.write(f"Secret identity for spotthebot.app: {secret_name.name}\n")
+            ui.download(file.name, filename="spotthebot_secret_identity.txt")
 
     return file.name
 
