@@ -36,14 +36,17 @@ def invite(public_name: str, secret_name: str) -> None:
     dialog.open()
 
 
-def randomize_name(label_name: Label, secret_name: SecretName) -> None:
+def randomize_name(label_name: Label, secret_name: SecretName, checkbox: ui.checkbox) -> None:
     label_name.text = generate_superhero_name()
     secret_name.name = generate_name()
+    checkbox.value = True
 
 
 def start_game(user_name: str, secret_name: SecretName, checkbox: ui.checkbox) -> None:
     if checkbox.value:
-        source_file_path, target_file_name = download_vcard(secret_name.name)
+        source_file_path, target_file_name = download_vcard(user_name, secret_name.name)
+        app.storage.user["identity_file"] = source_file_path
+
         ui.download(source_file_path, filename=target_file_name)
 
         checkbox.value = False
@@ -95,7 +98,7 @@ def index_page() -> None:
 
         label_name = ui.label(user_name)
         label_name.classes("cursor-pointer")
-        label_name.on("click", lambda: randomize_name(label_name, secret_name))
+        label_name.on("click", lambda: randomize_name(label_name, secret_name, checkbox))
 
         ui.label(f"or")
 

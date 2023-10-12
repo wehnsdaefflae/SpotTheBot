@@ -1,3 +1,4 @@
+import os
 import random
 
 from nicegui import app, ui
@@ -24,6 +25,10 @@ def next_snippet(user_name: str | None = None) -> Snippet:
 
 
 def submit(user_name: str, snippet: Snippet, points: int) -> None:
+    identity_file = app.storage.user.pop("identity_file", None)
+    if identity_file is not None:
+        os.remove(identity_file)
+
     print(f"{user_name} assumed {hash(snippet)} as HUMAN with {points} points")
     # update stats
     #   if is_bot:
