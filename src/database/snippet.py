@@ -1,16 +1,8 @@
-import dataclasses
 import json
 
 import redislite
 
-
-@dataclasses.dataclass(frozen=True)
-class Snippet:
-    text: str
-    source: str
-    is_bot: bool
-    metadata: tuple[tuple[str, str | int], ...]
-    db_id: int = -1
+from src.dataobjects import Snippet
 
 
 class Snippets:

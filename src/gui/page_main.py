@@ -1,17 +1,41 @@
 # coding=utf-8
+import hashlib
+from typing import Callable
 
 from fastapi import FastAPI
 from nicegui import ui, app
 from nicegui.elements.label import Label
 
 from src.gui.page_content_about import about_content
-from src.gui.dataobjects import SecretName
+from src.dataobjects import SecretName, User
 from src.gui.frame import create_footer
 from src.gui.page_content_friends import friends_content
 from src.gui.page_content_game import game_content
 from src.gui.page_content_results import results_content
 from src.gui.tools import download_vcard
 from src.tools.names import generate_name, generate_superhero_name
+
+main_app = FastAPI()
+ui.run_with(
+    main_app,
+    title="Spot the Bot", storage_secret="secret",  # NOTE setting a secret is optional but allows for persistent storage per user
+)
+
+# https://chat.openai.com/share/0f53ced3-31e0-45c5-8639-6710db6e7e1d
+class View:
+    def __init__(self):
+        self.get_user = None
+        # set_view_instance(self)
+
+    def set_get_user(self, callback: Callable[[str], User]) -> None:
+        self.get_user = callback
+
+
+view_instance = View()
+
+
+def get_view_instance() -> View:
+    return view_instance
 
 
 async def logout(name: str) -> None:
@@ -77,6 +101,27 @@ def game_page() -> None:
     game_content()
 
 
+async def log_in(secret_identity: str, secret_name: SecretName, label_public_name: ui.label) -> None:
+    # retrieve according public name and assign to
+    name_hash = hashlib.sha256(secret_identity.encode()).hexdigest()
+    user = view_instance.get_user(name_hash)
+    does_exist = False
+    if does_exist:
+        print("logging in as " + secret_identity)
+        return
+
+    else:
+        with ui.dialog() as dialog, ui.card():
+            ui.label("Sorry, I don't know your secret identity. Did you mistype?")
+
+        await dialog
+        app.storage.user.pop("user_name", None)
+        app.storage.user.pop("secure", None)
+
+        ui.open("/")
+        return
+
+
 @ui.page("/")
 def index_page() -> None:
     with ui.column() as column:
@@ -107,6 +152,7 @@ def index_page() -> None:
         ui.label(f"or")
 
         enter_text = ui.input("take on your secret identity")
+        enter_text.on("change", lambda: log_in(enter_text.value, secret_name, label_name))
 
         ui.label(f"or")
 
@@ -117,10 +163,3 @@ def index_page() -> None:
         # enter secret identity
 
         create_footer()
-
-
-def run(host_app: FastAPI) -> None:
-    ui.run_with(
-        host_app,
-        title="Spot the Bot", storage_secret="secret",  # NOTE setting a secret is optional but allows for persistent storage per user
-    )

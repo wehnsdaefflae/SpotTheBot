@@ -1,4 +1,3 @@
-import dataclasses
 import hashlib
 import json
 import sys
@@ -8,54 +7,11 @@ import redislite
 from loguru import logger
 from redis.client import Pipeline
 
+from src.dataobjects import StateUpdate, State, Friend, User
 from src.tools.names import get_seed, generate_name, generate_face
 
 logger.add(sys.stderr, format="{time} {level} {message}", colorize=True, level="INFO")
 logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 MB", level="DEBUG")
-
-
-@dataclasses.dataclass(frozen=True)
-class StateUpdate:
-    true_positives: int
-    true_negatives: int
-    false_positives: int
-    false_negatives: int
-
-
-@dataclasses.dataclass(frozen=True)
-class Face:
-    shape: int
-    ears: int
-    mouth: int
-    nose: int
-    eyes: int
-    hair: int
-    accessory: int
-
-
-@dataclasses.dataclass(frozen=True)
-class State:
-    last_positives_rate: float
-    last_negatives_rate: float
-
-
-@dataclasses.dataclass(frozen=True)
-class Friend:
-    db_id: int
-    name: str
-
-
-@dataclasses.dataclass(frozen=True)
-class User:
-    public_name: str
-    secret_name_hash: str
-    face: Face
-    invited_by_user_id: int
-    created_at: float
-    state: State
-
-    friends: set[Friend]
-    db_id: int = -1
 
 
 class Users:

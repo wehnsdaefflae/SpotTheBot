@@ -6,7 +6,8 @@ from typing import Tuple
 
 from loguru import logger
 
-from src.database.user import StateUpdate, Users
+from src.database.user import Users
+from src.dataobjects import StateUpdate
 
 
 class TestUsers(unittest.TestCase):

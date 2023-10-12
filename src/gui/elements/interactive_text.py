@@ -5,7 +5,7 @@ from nicegui import ui
 
 from src.gui.tools import colorize
 from src.gui.dummies import get_signs
-from src.gui.dataobjects import Snippet
+from src.dataobjects import Snippet
 
 
 class InteractiveText:

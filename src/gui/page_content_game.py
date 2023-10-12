@@ -3,7 +3,7 @@ import random
 
 from nicegui import app, ui
 
-from src.gui.dataobjects import Snippet
+from src.dataobjects import Snippet
 from src.gui.elements.interactive_text import InteractiveText
 from src.gui.frame import create_footer
 

@@ -4,7 +4,8 @@ import unittest
 import redislite
 from loguru import logger
 
-from src.database.marker import Markers, Field
+from src.database.marker import Markers
+from src.dataobjects import Field
 
 
 class TestMarkers(unittest.TestCase):

@@ -1,18 +1,12 @@
 import sys
-from enum import Enum
 
 import redislite
 from loguru import logger
 
+from src.dataobjects import Field
+
 logger.add(sys.stderr, format="{time} {level} {message}", colorize=True, level="INFO")
 logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 MB", level="DEBUG")
-
-
-class Field(Enum):
-    FALSE_POSITIVES = "false_positives"
-    FALSE_NEGATIVES = "false_negatives"
-    TRUE_POSITIVES = "true_positives"
-    TRUE_NEGATIVES = "true_negatives"
 
 
 class Markers:
