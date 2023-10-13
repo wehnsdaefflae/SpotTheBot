@@ -2,7 +2,6 @@
 import hashlib
 from typing import Callable
 
-from fastapi import FastAPI
 from nicegui import ui, app
 from nicegui.elements.label import Label
 
@@ -14,12 +13,6 @@ from src.gui.page_content_game import game_content
 from src.gui.page_content_results import results_content
 from src.gui.tools import download_vcard
 from src.tools.names import generate_name, generate_superhero_name
-
-main_app = FastAPI()
-ui.run_with(
-    main_app,
-    title="Spot the Bot", storage_secret="secret",  # NOTE setting a secret is optional but allows for persistent storage per user
-)
 
 
 # https://chat.openai.com/share/0f53ced3-31e0-45c5-8639-6710db6e7e1d
