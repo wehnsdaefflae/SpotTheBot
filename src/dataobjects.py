@@ -63,7 +63,7 @@ class Snippet:
     text: str
     source: str
     is_bot: bool
-    metadata: tuple[tuple[str, str | int], ...]
+    metadata: tuple[tuple[str, str | int], ...] = tuple()
     db_id: int = -1
 
 

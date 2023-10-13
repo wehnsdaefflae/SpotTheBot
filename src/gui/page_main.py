@@ -18,10 +18,15 @@ from src.tools.names import generate_name, generate_superhero_name
 class View:
     def __init__(self):
         self.get_user = None
+        self.create_user = None
+
         self.setup_routes()
 
     def set_get_user(self, callback: Callable[[str], User]) -> None:
         self.get_user = callback
+
+    def set_create_user(self, callback: Callable[[str, str], None]) -> None:
+        self.create_user = callback
 
     async def logout(self, name: str) -> None:
         with ui.dialog() as dialog, ui.card():
@@ -48,30 +53,30 @@ class View:
         secret_name.name = generate_name()
         checkbox.value = True
 
-    def start_game(self, user_name: str, secret_name: SecretName, checkbox: ui.checkbox) -> None:
-        if checkbox.value:
+    def start_game(self, user_name: str, secret_name: SecretName, secure_identity: bool) -> None:
+        if secure_identity:
             source_file_path, target_file_name = download_vcard(user_name, secret_name.name)
             app.storage.user["identity_file"] = source_file_path
 
             ui.download(source_file_path, filename=target_file_name)
 
-            checkbox.value = False
             # os.remove(file_name)
 
         app.storage.user["user_name"] = user_name
-        app.storage.user["secure"] = checkbox.value
+        app.storage.user.pop("secure")
         ui.open("/game")
 
-    async def log_in(self, secret_identity: str, secret_name: SecretName, label_public_name: ui.label) -> None:
-        # retrieve according public name and assign to
-        name_hash = hashlib.sha256(secret_identity.encode()).hexdigest()
-        user = self.get_user(name_hash)
-        does_exist = False
-        if does_exist:
-            print("logging in as " + secret_identity)
+    async def log_in(self, secret_identity: str, secret_name: SecretName, label_public_name: ui.label, secure_identity: bool) -> None:
+        if len(secret_identity) < 1:
             return
 
-        else:
+        name_hash = hashlib.sha256(secret_identity.encode()).hexdigest()
+        try:
+            # retrieve according public name and assign to
+            user = self.get_user(name_hash)
+            self.start_game(user.public_name, secret_name, secure_identity)
+
+        except KeyError:
             with ui.dialog() as dialog, ui.card():
                 ui.label("Sorry, I don't know your secret identity. Did you mistype?")
 
@@ -80,7 +85,6 @@ class View:
             app.storage.user.pop("secure", None)
 
             ui.open("/")
-            return
 
     def setup_routes(self) -> None:
         @ui.page("/friends")
@@ -113,7 +117,9 @@ class View:
 
                 secret_name = SecretName()
 
-                button_start = ui.button("SPOT THE BOT", on_click=lambda: self.start_game(label_name.text, secret_name, checkbox))
+                button_start = ui.button(
+                    "SPOT THE BOT", on_click=lambda: self.start_game(label_name.text, secret_name, checkbox.value)
+                )
                 checkbox = ui.checkbox("Secure secret identity as phone contact.", value=app.storage.user.get("secure", True))
 
                 label_welcome = ui.label(f"as the super hero")
@@ -129,7 +135,7 @@ class View:
                 ui.label(f"or")
 
                 enter_text = ui.input("take on your secret identity")
-                enter_text.on("change", lambda: self.log_in(enter_text.value, secret_name, label_name))
+                enter_text.on("change", lambda: self.log_in(enter_text.value, secret_name, label_name, checkbox.value))
 
                 ui.label(f"or")
 

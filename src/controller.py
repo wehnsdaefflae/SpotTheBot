@@ -9,4 +9,5 @@ class Controller:
         self.view = View()
 
         self.view.set_get_user(self.model.users.get_user)
+        self.view.set_create_user(self.model.users.create_user)
 

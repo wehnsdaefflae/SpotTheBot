@@ -19,8 +19,8 @@ def next_snippet(user_name: str | None = None) -> Snippet:
     )
     return Snippet(
         source="Wikipedia",
-        content=content,
-        is_fake=False
+        text=content,
+        is_bot=False
     )
 
 

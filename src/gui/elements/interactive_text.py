@@ -20,7 +20,7 @@ class InteractiveText:
         self.legend = None
 
     def _generate_content(self) -> ui.column:
-        lines = self.snippet.content.split("\n")
+        lines = self.snippet.text.split("\n")
 
         with ui.column() as main_text_content:
             ui.markdown(f"SOURCE: {self.snippet.source}")

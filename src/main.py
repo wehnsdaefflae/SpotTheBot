@@ -12,7 +12,7 @@ def main() -> None:
     port = 8000
     # webbrowser.open(f"http://{address}:{port}")
 
-    ui.run(host=address, port=port, title="MWE", uvicorn_logging_level="debug", storage_secret="secret", reload=True)
+    ui.run(host=address, port=port, title="Spot The Bot!", uvicorn_logging_level="debug", storage_secret="secret", reload=True)
 
 
 if __name__ in {"__main__", "__mp_main__"}:
