@@ -14,8 +14,8 @@ def main() -> None:
 
     # `uvicorn main:app --reload --log-level debug --port 8000 --host 0.0.0.0`
     # uvicorn.run("main:app", host=address, port=port, log_level="debug", reload=True)
-    uvicorn.run("gui.page_main:main_app", host=address, port=port, log_level="debug", reload=True)
+    uvicorn.run("gui.page_main:main_app", host=address, port=port, log_level="debug")
 
 
-if __name__ == '__main__':
+if __name__ in {"__main__", "__mp_main__"}:
     main()
