@@ -15,7 +15,6 @@ from src.gui.tools import download_vcard
 from src.tools.names import generate_name, generate_superhero_name
 
 
-# https://chat.openai.com/share/0f53ced3-31e0-45c5-8639-6710db6e7e1d
 class View:
     def __init__(self):
         self.get_user = None

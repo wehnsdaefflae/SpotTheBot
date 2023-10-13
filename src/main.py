@@ -12,7 +12,6 @@ def main() -> None:
     port = 8000
     # webbrowser.open(f"http://{address}:{port}")
 
-    # uvicorn.run("main:app", host=address, port=port, log_level="debug")
     ui.run(host=address, port=port, title="MWE", uvicorn_logging_level="debug", storage_secret="secret", reload=True)
 
 
