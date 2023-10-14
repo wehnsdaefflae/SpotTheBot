@@ -1,5 +1,7 @@
 import random
 
+from src.dataobjects import Face
+
 
 def create_full_name(
         title: str | None,
@@ -49,9 +51,11 @@ def get_seed(dim: int) -> tuple[float, ...]:
     return tuple(random.random() for _ in range(dim))
 
 
-def generate_face(seed: tuple[float, ...] | None = None) -> tuple[int, ...]:
+def generate_face(seed: tuple[float, ...]) -> Face:
     # todo: replace with actual face parts
-    return tuple(int(_x * 20) for _x in seed)
+    assert len(seed) == 7
+    face_seed = tuple(int(_x * 20) for _x in seed)
+    return Face(*face_seed)
 
 
 def generate_superhero_name() -> str:
@@ -130,7 +134,7 @@ def generate_superhero_name() -> str:
     return f"{title} {first_noun}{second_noun}"
 
 
-def generate_name(seed: tuple[float, ...] | None = None) -> str:
+def generate_name(seed: tuple[float, ...]) -> str:
     titles = [
         None,
         "Mr.", "Mrs.", "Miss", "Ms.", "Dr.",
@@ -193,22 +197,13 @@ def generate_name(seed: tuple[float, ...] | None = None) -> str:
     ]
     # len = 23
 
-    if seed is None:
-        title = random.choice(titles)
-        first_name_prefix = random.choice(first_name_prefixes)
-        first_name_suffix = random.choice(first_name_suffixes)
-        middle_name = random.choice(middle_names)
-        surname_prefix = random.choice(surname_prefixes)
-        surname_suffix = random.choice(surname_suffixes)
-        suffix = random.choice(suffixes)
-    else:
-        title = titles[int(seed[0] * len(titles))]
-        first_name_prefix = first_name_prefixes[int(seed[1] * len(first_name_prefixes))]
-        first_name_suffix = first_name_suffixes[int(seed[2] * len(first_name_suffixes))]
-        middle_name = middle_names[int(seed[3] * len(middle_names))]
-        surname_prefix = surname_prefixes[int(seed[4] * len(surname_prefixes))]
-        surname_suffix = surname_suffixes[int(seed[5] * len(surname_suffixes))]
-        suffix = suffixes[int(seed[6] * len(suffixes))]
+    title = titles[int(seed[0] * len(titles))]
+    first_name_prefix = first_name_prefixes[int(seed[1] * len(first_name_prefixes))]
+    first_name_suffix = first_name_suffixes[int(seed[2] * len(first_name_suffixes))]
+    middle_name = middle_names[int(seed[3] * len(middle_names))]
+    surname_prefix = surname_prefixes[int(seed[4] * len(surname_prefixes))]
+    surname_suffix = surname_suffixes[int(seed[5] * len(surname_suffixes))]
+    suffix = suffixes[int(seed[6] * len(suffixes))]
 
     full_name = create_full_name(
         title,

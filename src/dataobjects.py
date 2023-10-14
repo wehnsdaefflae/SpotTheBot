@@ -1,4 +1,5 @@
 import dataclasses
+import time
 from enum import Enum
 
 
@@ -35,8 +36,8 @@ class Face:
 
 @dataclasses.dataclass(frozen=True)
 class State:
-    last_positives_rate: float
-    last_negatives_rate: float
+    last_positives_rate: float = .5
+    last_negatives_rate: float = .5
 
 
 @dataclasses.dataclass(frozen=True)
@@ -47,15 +48,14 @@ class Friend:
 
 @dataclasses.dataclass(frozen=True)
 class User:
-    public_name: str
     secret_name_hash: str
     face: Face
-    invited_by_user_id: int
-    created_at: float
     state: State
-
     friends: set[Friend]
+
     db_id: int = -1
+    invited_by_user_id: int = -1
+    created_at: float = dataclasses.field(default_factory=time.time)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -63,7 +63,7 @@ class Snippet:
     text: str
     source: str
     is_bot: bool
-    metadata: tuple[tuple[str, str | int], ...] = tuple()
+    metadata: tuple[tuple[str, str | int], ...] = dataclasses.field(default_factory=tuple)
     db_id: int = -1
 
 

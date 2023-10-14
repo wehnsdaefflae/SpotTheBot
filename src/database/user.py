@@ -32,37 +32,29 @@ class Users:
         friends_key = f"{user_key}:friends"
         self.redis.expire(friends_key, self.expiration_seconds)
 
-    def create_user(self, public_name: str, invited_by_user_id: int | None = None) -> str:
-        name_seed = get_seed(7)
-        secret_name = generate_name(seed=name_seed)
-
-        face_seed = get_seed(7)
-        face = generate_face(seed=face_seed)
-
-        secret_name_encoded = secret_name.encode()
-        secret_name_hash = hashlib.sha256(secret_name_encoded).hexdigest()
-
-        name_hash_key = f"name_hash:{secret_name_hash}"
+    def create_user(self, user: User) -> str:
+        name_hash_key = f"name_hash:{user.secret_name_hash}"
         if self.redis.exists(name_hash_key):
-            raise ValueError(f"User with name hash {secret_name_hash} already exists.")
+            raise ValueError("User already exists.")
     
         user_id = self.redis.incr("user_id_counter")
         user_key = f"user:{user_id}"
         self.redis.hset(user_key, mapping={
-            "public_name": public_name,
-            "secret_name_hash": secret_name_hash,
-            "face": json.dumps(face),
-            "invited_by_user_id": invited_by_user_id or -1,
-            "created_at": time.time(),
-            "last_positives_rate": .5,
-            "last_negatives_rate": .5,
+            "secret_name_hash": user.secret_name_hash,
+            "face": json.dumps(user.face),
+            "last_positives_rate": user.state.last_positives_rate,
+            "last_negatives_rate": user.state.last_negatives_rate,
+            "invited_by_user_id": user.invited_by_user_id,
+            "created_at": user.created_at,
         })
         self.redis.set(name_hash_key, user_id)
-        if invited_by_user_id is not None:
-            self.make_friends(invited_by_user_id, user_id)  # also initializes expiration
+
+        # only friend of new user is invitee
+        if user.invited_by_user_id >= 0:
+            self.make_friends(user.invited_by_user_id, user_id)  # also initializes expiration
 
         logger.info(f"Created user {user_id}.")
-        return secret_name
+        return user_key
 
     def get_user(self, secret_name_hash: str) -> User:
         # user = get_user('JohnDoe')

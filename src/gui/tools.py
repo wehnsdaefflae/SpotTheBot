@@ -10,7 +10,7 @@ def colorize(signs_dict: dict[str, int]) -> tuple[tuple[str, str], ...]:
     return tuple((each_sign, next(color_generator)) for each_sign in signs)
 
 
-def download_vcard(public_name: str, secret_name: str) -> tuple[str, str]:
+def download_vcard(secret_name: str) -> tuple[str, str]:
     ram_disk_path = "/dev/shm/"
     now = datetime.datetime.now()
     on_mobile = True
@@ -21,7 +21,6 @@ def download_vcard(public_name: str, secret_name: str) -> tuple[str, str]:
             file.write(f"VERSION:3.0\n")
             file.write(f"N:{secret_name}\n")
             file.write(f"FN:{secret_name}\n")
-            file.write(f"NICKNAME:{public_name}\n")
             file.write(f"ORG:Spot The Bot\n")
             file.write(f"ROLE:Super Hero Private Detective\n")
             file.write(f"REV:{now.strftime('%Y%m%dT%H%M%SZ')}\n")
