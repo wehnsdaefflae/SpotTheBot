@@ -37,17 +37,17 @@ def submit(user_name: str, snippet: Snippet, points: int) -> None:
 
 
 def game_content() -> None:
-    user_name = app.storage.user.get("user_name", None)
-    if user_name is None:
+    name_hash = app.storage.user.get("name_hash", None)
+    if name_hash is None:
         ui.open("/")
         return
 
     with ui.header(elevated=True):
         link_home = ui.link("home", "/")
-        label_title = ui.label(f"{user_name}: Spot the Bot")
+        label_title = ui.label("Spot the Bot")
 
     points = 25
-    snippet = next_snippet(user_name)
+    snippet = next_snippet(name_hash)
     interactive_text = InteractiveText(snippet)
 
     with ui.column() as column:
@@ -61,7 +61,7 @@ def game_content() -> None:
             element_diagram = ui.element()
             text_gullible = ui.markdown("gullible")
 
-    submit_button = ui.button(interactive_text.submit_human, on_click=lambda: submit(user_name, snippet, points))
+    submit_button = ui.button(interactive_text.submit_human, on_click=lambda: submit(name_hash, snippet, points))
     submit_button.classes("w-full justify-center")
 
     async def init_tag_count() -> None:

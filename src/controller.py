@@ -1,5 +1,6 @@
 from src.database.model import Model
-from src.gui.page_main import View
+from src.dataobjects import ViewCallbacks
+from src.gui.view import View
 
 
 class Controller:
@@ -8,6 +9,10 @@ class Controller:
         self.model = Model()
         self.view = View()
 
-        self.view.set_get_user(self.model.users.get_user)
-        self.view.set_create_user(self.model.users.create_user)
+        view_callbacks = ViewCallbacks(
+            self.model.users.get_user,
+            self.model.users.create_user,
+        )
+
+        self.view.set_callbacks(view_callbacks)
 

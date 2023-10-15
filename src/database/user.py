@@ -7,7 +7,7 @@ import redislite
 from loguru import logger
 from redis.client import Pipeline
 
-from src.dataobjects import StateUpdate, State, Friend, User
+from src.dataobjects import StateUpdate, State, Friend, User, Face
 from src.tools.names import get_seed, generate_name, generate_face
 
 logger.add(sys.stderr, format="{time} {level} {message}", colorize=True, level="INFO")
@@ -41,7 +41,7 @@ class Users:
         user_key = f"user:{user_id}"
         self.redis.hset(user_key, mapping={
             "secret_name_hash": user.secret_name_hash,
-            "face": json.dumps(user.face),
+            "face": json.dumps(user.face.to_tuple()),
             "last_positives_rate": user.state.last_positives_rate,
             "last_negatives_rate": user.state.last_negatives_rate,
             "invited_by_user_id": user.invited_by_user_id,
@@ -80,14 +80,16 @@ class Users:
 
         friends = self.get_friends(user_id)
         state = State(data.pop("last_positives_rate"), data.pop("last_negatives_rate"))
+        face_tuple = json.loads(data.pop("face"))
+        face = Face(*face_tuple)
         return User(
-            data.pop("public_name"),
-            data.pop("secret_name_hash"),
-            json.loads(data.pop("face")),
-            data.pop("invited_by_user_id"),
-            data.pop("created_at"),
-            state,
-            friends, db_id=user_id
+            secret_name_hash=data.pop("secret_name_hash"),
+            face=face,
+            friends=friends,
+            state=state,
+            db_id=user_id,
+            invited_by_user_id=data.pop("invited_by_user_id"),
+            created_at=data.pop("created_at"),
         )
 
     def get_friend(self, friend_id: int) -> Friend:

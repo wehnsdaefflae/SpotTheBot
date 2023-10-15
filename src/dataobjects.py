@@ -1,11 +1,8 @@
 import dataclasses
+import random
 import time
 from enum import Enum
-
-
-@dataclasses.dataclass
-class SecretName:
-    name: str = ""
+from typing import Callable
 
 
 @dataclasses.dataclass(frozen=True)
@@ -25,13 +22,16 @@ class StateUpdate:
 
 @dataclasses.dataclass(frozen=True)
 class Face:
-    shape: int
-    ears: int
-    mouth: int
-    nose: int
-    eyes: int
-    hair: int
-    accessory: int
+    shape: int = int(random.random() * 20)
+    ears: int = int(random.random() * 20)
+    mouth: int = int(random.random() * 20)
+    nose: int = int(random.random() * 20)
+    eyes: int = int(random.random() * 20)
+    hair: int = int(random.random() * 20)
+    accessory: int = int(random.random() * 20)
+
+    def to_tuple(self) -> tuple[int, ...]:
+        return self.shape, self.ears, self.mouth, self.nose, self.eyes, self.hair, self.accessory
 
 
 @dataclasses.dataclass(frozen=True)
@@ -49,10 +49,10 @@ class Friend:
 @dataclasses.dataclass(frozen=True)
 class User:
     secret_name_hash: str
-    face: Face
-    state: State
-    friends: set[Friend]
 
+    face: Face = dataclasses.field(default_factory=Face)
+    friends: set[Friend] = dataclasses.field(default_factory=set)
+    state: State = dataclasses.field(default_factory=State)
     db_id: int = -1
     invited_by_user_id: int = -1
     created_at: float = dataclasses.field(default_factory=time.time)
@@ -72,3 +72,9 @@ class Field(Enum):
     FALSE_NEGATIVES = "false_negatives"
     TRUE_POSITIVES = "true_positives"
     TRUE_NEGATIVES = "true_negatives"
+
+
+@dataclasses.dataclass
+class ViewCallbacks:
+    get_user: Callable[[str], User]
+    create_user: Callable[[User], str]
