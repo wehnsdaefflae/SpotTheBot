@@ -3,7 +3,7 @@ import random
 
 from nicegui import app, ui
 
-from src.dataobjects import Snippet
+from src.dataobjects import Snippet, ViewStorage
 from src.gui.elements.interactive_text import InteractiveText
 from src.gui.frame import create_footer
 
@@ -36,9 +36,9 @@ def submit(user_name: str, snippet: Snippet, points: int) -> None:
     ui.open("/game")
 
 
-def game_content() -> None:
-    name_hash = app.storage.user.get("name_hash", None)
-    if name_hash is None:
+def game_content(view_storage: ViewStorage) -> None:
+    if view_storage.user is None:
+        # DOES THIS WORK?
         ui.open("/")
         return
 
@@ -47,7 +47,7 @@ def game_content() -> None:
         label_title = ui.label("Spot the Bot")
 
     points = 25
-    snippet = next_snippet(name_hash)
+    snippet = next_snippet(view_storage.user.secret_name_hash)
     interactive_text = InteractiveText(snippet)
 
     with ui.column() as column:
@@ -61,7 +61,10 @@ def game_content() -> None:
             element_diagram = ui.element()
             text_gullible = ui.markdown("gullible")
 
-    submit_button = ui.button(interactive_text.submit_human, on_click=lambda: submit(name_hash, snippet, points))
+    submit_button = ui.button(
+        interactive_text.submit_human,
+        on_click=lambda: submit(view_storage.user.secret_name_hash, snippet, points)
+    )
     submit_button.classes("w-full justify-center")
 
     async def init_tag_count() -> None:

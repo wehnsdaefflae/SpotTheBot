@@ -74,7 +74,12 @@ class Field(Enum):
     TRUE_NEGATIVES = "true_negatives"
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class ViewCallbacks:
     get_user: Callable[[str], User]
     create_user: Callable[[User], str]
+
+
+@dataclasses.dataclass
+class ViewStorage:
+    user: User | None = None

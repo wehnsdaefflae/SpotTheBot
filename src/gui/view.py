@@ -2,7 +2,7 @@
 from nicegui import ui
 
 from src.gui.page_content_about import about_content
-from src.dataobjects import ViewCallbacks
+from src.dataobjects import ViewCallbacks, ViewStorage
 from src.gui.page_content_friends import friends_content
 from src.gui.page_content_game import game_content
 from src.gui.page_content_results import results_content
@@ -11,8 +11,8 @@ from src.gui.page_content_start import start_content
 
 class View:
     def __init__(self):
-        self.callbacks = None
-        self.setup_routes()
+        self.callbacks: ViewCallbacks | None = None
+        self.storage: ViewStorage = ViewStorage()
 
     def set_callbacks(self, callback: ViewCallbacks) -> None:
         self.callbacks = callback
@@ -32,10 +32,8 @@ class View:
 
         @ui.page("/game")
         def game_page() -> None:
-            game_content()
+            game_content(self.storage)
 
         @ui.page("/")
         def index_page() -> None:
-            start_content(self.callbacks)
-
-
+            start_content(self.storage, self.callbacks)

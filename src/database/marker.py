@@ -1,6 +1,11 @@
 import sys
 
-import redislite
+import loguru
+import redislite.patch
+redislite.patch.patch_redis()
+
+from redis import Redis
+
 from loguru import logger
 
 from src.dataobjects import Field
@@ -10,8 +15,14 @@ logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 
 
 
 class Markers:
-    def __init__(self, redis: redislite.Redis | None = None, max_markers: int = 100) -> None:
-        self.redis = redis or redislite.Redis("../database/spotthebot.rdb", db=2)
+    def __init__(self, redis: Redis | None = None, max_markers: int = 100) -> None:
+        db_index = 2
+        self.redis = redis or Redis("../database/spotthebot.rdb", db=db_index)
+        loguru.logger.info(
+            f"Markers initialized. "
+            f"`qredis -s {self.redis.connection_pool.connection_kwargs['path']} -n {db_index}`"
+        )
+
         self.max_markers = max_markers
 
     def _remove_older_markers(self) -> None:

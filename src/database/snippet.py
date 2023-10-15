@@ -1,13 +1,23 @@
 import json
 
-import redislite
+import loguru
+import redislite.patch
+redislite.patch.patch_redis()
+
+from redis import Redis
 
 from src.dataobjects import Snippet
 
 
 class Snippets:
-    def __init__(self, redis: redislite.Redis | None = None):
-        self.redis = redis or redislite.Redis("../database/spotthebot.rdb", db=1)
+    def __init__(self, redis: Redis | None = None):
+        db_index = 1
+        self.redis = redis or Redis("../database/spotthebot.rdb", db=1)
+        loguru.logger.info(
+            f"Snippets initialized. "
+            f"`qredis -s {self.redis.connection_pool.connection_kwargs['path']} -n {db_index}`"
+        )
+
         if self.redis.exists("snippet_id_counter"):
             self.snippet_count = self.redis.get("snippet_id_counter")
         else:

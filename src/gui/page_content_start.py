@@ -4,7 +4,7 @@ from typing import Callable
 
 from nicegui import ui, app
 
-from src.dataobjects import User, ViewCallbacks
+from src.dataobjects import User, ViewCallbacks, ViewStorage
 from src.gui.frame import create_footer
 from src.gui.tools import download_vcard
 from src.tools.names import generate_name
@@ -30,21 +30,6 @@ def retrieve_user_and_secret(get_user: Callable[[str], User]) -> tuple[User, str
     name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
 
     return User(name_hash), secret_name
-
-
-async def logout() -> None:
-    with ui.dialog().props("persistent") as dialog, ui.card():
-        ui.label("Are you sure you want to log out?")
-        with ui.row() as button_row:
-            ui.button("yes", on_click=lambda: dialog.submit("yes"))
-            ui.button("no", on_click=lambda: dialog.submit("no"))
-
-    result = await dialog
-    if result == "yes":
-        app.storage.user.pop("name_hash", None)
-        app.storage.user.pop("identity_file", None)
-
-        ui.open("/")
 
 
 async def invite(name_hash: str) -> None:
@@ -103,7 +88,7 @@ async def log_in(get_user: Callable[[str], User], create_user: Callable[[User], 
         ui.open("/")
 
 
-def start_content(callbacks: ViewCallbacks) -> None:
+def start_content(view_storage: ViewStorage, callbacks: ViewCallbacks) -> None:
     with ui.column() as column:
         title_label = ui.label("Look out for robots!")
         title_label.classes("text-h4 font-bold text-grey-8")
@@ -112,24 +97,28 @@ def start_content(callbacks: ViewCallbacks) -> None:
             each_indicator_label = ui.label(f"[indicator {i + 1}] [accuracy]")
 
         user, secret_name = retrieve_user_and_secret(callbacks.get_user)
+        view_storage.user = user
 
         # get_random_name
         ui.label(f"[face]")
 
         ui.label("this isn't you?")
         enter_text = ui.input("take on your secret identity")
-        enter_text.on("change", lambda: log_in(callbacks.get_user, callbacks.create_user, enter_text.value))
+        enter_text.on(
+            "change",
+            lambda: log_in(callbacks.get_user, callbacks.create_user, enter_text.value)
+        )
 
-        button_start = ui.button("SPOT THE BOT", on_click=lambda: start_game(callbacks.create_user, user, secret_name))
+        button_start = ui.button(
+            "SPOT THE BOT",
+            on_click=lambda: start_game(callbacks.create_user, user, secret_name)
+        )
 
         ui.label(f"or")
 
-        invite_button = ui.button("Invite a friend", on_click=lambda: invite(user.secret_name_hash))
-
-        label_logout = ui.label("[logout]")
-        label_logout.classes("cursor-pointer")
-        label_logout.on("click", logout)
-
-        # enter secret identity
+        invite_button = ui.button(
+            "Invite a friend",
+            on_click=lambda: invite(user.secret_name_hash)
+        )
 
         create_footer()

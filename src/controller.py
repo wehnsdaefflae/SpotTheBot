@@ -4,7 +4,6 @@ from src.gui.view import View
 
 
 class Controller:
-
     def __init__(self):
         self.model = Model()
         self.view = View()
@@ -15,4 +14,4 @@ class Controller:
         )
 
         self.view.set_callbacks(view_callbacks)
-
+        self.view.setup_routes()

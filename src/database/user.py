@@ -1,22 +1,32 @@
-import hashlib
 import json
 import sys
-import time
 
-import redislite
+import loguru
+import redislite.patch
+redislite.patch.patch_redis()
+
+from redis import Redis
+
 from loguru import logger
 from redis.client import Pipeline
 
 from src.dataobjects import StateUpdate, State, Friend, User, Face
-from src.tools.names import get_seed, generate_name, generate_face
 
 logger.add(sys.stderr, format="{time} {level} {message}", colorize=True, level="INFO")
 logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 MB", level="DEBUG")
 
 
 class Users:
-    def __init__(self, redis: redislite.Redis | None = None, expiration_seconds: int = 60 * 60 * 24 * 7 * 30 * 6) -> None:
-        self.redis = redis or redislite.Redis("../database/spotthebot.rdb", db=0)
+    def __init__(self,
+                 redis: Redis | None = None,
+                 expiration_seconds: int = 60 * 60 * 24 * 7 * 30 * 6) -> None:
+        db_index = 0
+        self.redis = redis or Redis("../database/spotthebot.rdb", db=db_index)
+        loguru.logger.info(
+            f"Users initialized. "
+            f"`qredis -s {self.redis.connection_pool.connection_kwargs['path']} -n {db_index}`"
+        )
+
         self.expiration_seconds = expiration_seconds
 
         if not self.redis.exists("user_id_counter"):
@@ -36,7 +46,7 @@ class Users:
         name_hash_key = f"name_hash:{user.secret_name_hash}"
         if self.redis.exists(name_hash_key):
             raise ValueError("User already exists.")
-    
+
         user_id = self.redis.incr("user_id_counter")
         user_key = f"user:{user_id}"
         self.redis.hset(user_key, mapping={
@@ -107,15 +117,15 @@ class Users:
         user_key = f"user:{user_id}"
         if not self.redis.exists(user_key):
             raise KeyError(f"User {user_id} does not exist.")
-    
+
         friends = self.get_friends(user_id)
         with self.redis.pipeline() as pipe:
             for each_friend in friends:
                 self._remove_friend_unidirectional(each_friend.db_id, user_id, pipeline=pipe)
             pipe.execute()
-    
+
         secret_name_hash = self.redis.hget(user_key, "secret_name_hash")
-    
+
         self.redis.srem("user_name_hashes", secret_name_hash)
         self.redis.delete(f"{user_key}:progress")
         self.redis.delete(user_key)
@@ -153,27 +163,27 @@ class Users:
         self._remove_friend_unidirectional(friend_id, user_id, pipeline=None)
 
         self._reset_user_expiration(f"user:{user_id}")
-    
+
     def update_user_state(self, user_key: str, state_update: StateUpdate, minimum: int = 10) -> None:
         # update_user_state('JohnDoe', StateUpdate(0, 0, 1, 0))
         if state_update.true_positives + state_update.false_positives + state_update.true_negatives + state_update.false_negatives < minimum:
             return
-    
+
         positives = state_update.true_positives + state_update.false_positives
         if positives < 1:
             return
         positives_rate = state_update.true_positives / positives
-    
+
         negatives = state_update.true_negatives + state_update.false_negatives
         if negatives < 1:
             return
         negatives_rate = state_update.true_negatives / negatives
-    
+
         self.redis.hset(user_key, mapping={
             "last_positives_rate": positives_rate,
             "last_negatives_rate": negatives_rate
         })
-    
+
         self._reset_user_expiration(user_key)
 
     def get_friends(self, user_id: int) -> set[Friend]:
@@ -188,7 +198,7 @@ class Users:
             friends.add(each_friend)
 
         return friends
-    
+
     def set_user_progress(self, user_key: str, current_seed: int, from_snippet_id: int, to_snippet_id: int, current_index: int) -> None:
         progress_key = f"{user_key}:progress"
         self.redis.hset(progress_key, mapping={
@@ -197,5 +207,5 @@ class Users:
             "to_snippet_id": to_snippet_id,
             "current_index": current_index
         })
-    
+
         self._reset_user_expiration(user_key)
