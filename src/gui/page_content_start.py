@@ -51,7 +51,7 @@ async def invite(name_hash: str) -> None:
     dialog.open()
 
 
-async def start_game(create_user: Callable[[User], str], user: User, secret_name: str) -> None:
+async def start_game(create_user: Callable[[User], str], view_storage: ViewStorage, user: User, secret_name: str) -> None:
     if len(secret_name) >= 1:
         assert user.db_id < 0
         with ui.dialog().props("persistent") as dialog, ui.card():
@@ -60,6 +60,7 @@ async def start_game(create_user: Callable[[User], str], user: User, secret_name
 
         await dialog
         user_key = create_user(user)
+        view_storage.user = user
         source_file_path, target_file_name = download_vcard(secret_name)
         app.storage.user["identity_file"] = source_file_path
         ui.download(source_file_path, filename=target_file_name)
@@ -89,6 +90,9 @@ async def log_in(get_user: Callable[[str], User], create_user: Callable[[User], 
 
 
 def start_content(view_storage: ViewStorage, callbacks: ViewCallbacks) -> None:
+    from loguru import logger
+    logger.info("Start page")
+
     with ui.column() as column:
         title_label = ui.label("Look out for robots!")
         title_label.classes("text-h4 font-bold text-grey-8")
@@ -97,7 +101,6 @@ def start_content(view_storage: ViewStorage, callbacks: ViewCallbacks) -> None:
             each_indicator_label = ui.label(f"[indicator {i + 1}] [accuracy]")
 
         user, secret_name = retrieve_user_and_secret(callbacks.get_user)
-        view_storage.user = user
 
         # get_random_name
         ui.label(f"[face]")
@@ -111,7 +114,7 @@ def start_content(view_storage: ViewStorage, callbacks: ViewCallbacks) -> None:
 
         button_start = ui.button(
             "SPOT THE BOT",
-            on_click=lambda: start_game(callbacks.create_user, user, secret_name)
+            on_click=lambda: start_game(callbacks.create_user, view_storage, user, secret_name)
         )
 
         ui.label(f"or")
@@ -121,4 +124,4 @@ def start_content(view_storage: ViewStorage, callbacks: ViewCallbacks) -> None:
             on_click=lambda: invite(user.secret_name_hash)
         )
 
-        create_footer()
+        create_footer(view_storage)

@@ -18,22 +18,23 @@ class View:
         self.callbacks = callback
 
     def setup_routes(self) -> None:
+        # make frame to contextmanager (header and footer)
         @ui.page("/friends")
         def friends_page() -> None:
-            friends_content()
+            friends_content(self.storage)
 
         @ui.page("/results")
         def results_page() -> None:
-            results_content()
+            results_content(self.storage)
 
         @ui.page("/about")
         def about_page() -> None:
-            about_content()
-
-        @ui.page("/game")
-        def game_page() -> None:
-            game_content(self.storage)
+            about_content(self.storage)
 
         @ui.page("/")
         def index_page() -> None:
             start_content(self.storage, self.callbacks)
+
+        @ui.page("/game")
+        def game_page() -> None:
+            game_content(self.storage)

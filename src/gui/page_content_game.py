@@ -1,6 +1,7 @@
 import os
 import random
 
+from loguru import logger
 from nicegui import app, ui
 
 from src.dataobjects import Snippet, ViewStorage
@@ -37,8 +38,10 @@ def submit(user_name: str, snippet: Snippet, points: int) -> None:
 
 
 def game_content(view_storage: ViewStorage) -> None:
+    logger.info("Game page")
+
     if view_storage.user is None:
-        # DOES THIS WORK?
+        # todo: DOES THIS WORK?
         ui.open("/")
         return
 
@@ -76,7 +79,7 @@ def game_content(view_storage: ViewStorage) -> None:
         await ui.run_javascript("console.log('init finished')", respond=False)
 
     app.on_connect(init_tag_count)
-    create_footer()
+    create_footer(view_storage)
 
     def increment_counter() -> None:
         nonlocal points

@@ -1,11 +1,15 @@
 import random
 
+from loguru import logger
 from nicegui import ui
 
+from src.dataobjects import ViewStorage
 from src.gui.frame import create_footer
 
 
-def results_content() -> None:
+def results_content(view_storage: ViewStorage) -> None:
+    logger.info("Results page")
+
     with ui.header(elevated=True):
         link_home = ui.link("home", "/")
         label_title = ui.label("Results")
@@ -20,4 +24,4 @@ def results_content() -> None:
         f"unabhängig voneinander bestritten wurden, kamen sie zusammen auf einen ähnlichen Wähleranteil von rund 13 %."
     )
     text_example = ui.markdown(content)
-    create_footer()
+    create_footer(view_storage)
