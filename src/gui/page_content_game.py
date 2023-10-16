@@ -66,7 +66,7 @@ def game_content(view_storage: ViewStorage) -> None:
 
     submit_button = ui.button(
         interactive_text.submit_human,
-        on_click=lambda: submit(view_storage.user.secret_name_hash, snippet, points)
+        on_click=lambda: submit(name_hash, snippet, points)
     )
     submit_button.classes("w-full justify-center")
 
