@@ -1,4 +1,6 @@
+# coding=utf-8
 import json
+import subprocess
 import sys
 
 import loguru
@@ -19,13 +21,16 @@ logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 
 class Users:
     def __init__(self,
                  redis: Redis | None = None,
-                 expiration_seconds: int = 60 * 60 * 24 * 7 * 30 * 6) -> None:
+                 expiration_seconds: int = 60 * 60 * 24 * 7 * 30 * 6,
+                 debugging: bool = False) -> None:
         db_index = 0
         self.redis = redis or Redis("../database/spotthebot.rdb", db=db_index)
         loguru.logger.info(
             f"Users initialized. "
             f"`qredis -s {self.redis.connection_pool.connection_kwargs['path']} -n {db_index}`"
         )
+        if debugging:
+            subprocess.Popen(["qredis", "-s", self.redis.connection_pool.connection_kwargs['path'], "-n", str(db_index)])
 
         self.expiration_seconds = expiration_seconds
 

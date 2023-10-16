@@ -1,3 +1,4 @@
+import subprocess
 import sys
 
 import loguru
@@ -15,13 +16,15 @@ logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 
 
 
 class Markers:
-    def __init__(self, redis: Redis | None = None, max_markers: int = 100) -> None:
+    def __init__(self, redis: Redis | None = None, max_markers: int = 100, debugging: bool = False) -> None:
         db_index = 2
         self.redis = redis or Redis("../database/spotthebot.rdb", db=db_index)
         loguru.logger.info(
             f"Markers initialized. "
             f"`qredis -s {self.redis.connection_pool.connection_kwargs['path']} -n {db_index}`"
         )
+        if debugging:
+            subprocess.Popen(["qredis", "-s", self.redis.connection_pool.connection_kwargs['path'], "-n", str(db_index)])
 
         self.max_markers = max_markers
 

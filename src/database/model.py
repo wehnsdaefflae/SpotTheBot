@@ -5,6 +5,6 @@ from src.database.user import Users
 
 class Model:
     def __init__(self):
-        self.users = Users()
-        self.snippets = Snippets()
-        self.markers = Markers()
+        self.users = Users(debugging=False)
+        self.snippets = Snippets(debugging=False)
+        self.markers = Markers(debugging=False)

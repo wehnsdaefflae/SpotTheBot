@@ -82,4 +82,4 @@ class ViewCallbacks:
 
 @dataclasses.dataclass
 class ViewStorage:
-    user: User | None = None
+    users: dict[str, User] = dataclasses.field(default_factory=dict)

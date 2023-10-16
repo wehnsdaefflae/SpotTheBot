@@ -1,4 +1,6 @@
+# coding=utf-8
 import json
+import subprocess
 
 import loguru
 import redislite.patch
@@ -10,13 +12,15 @@ from src.dataobjects import Snippet
 
 
 class Snippets:
-    def __init__(self, redis: Redis | None = None):
+    def __init__(self, redis: Redis | None = None, debugging: bool = False):
         db_index = 1
         self.redis = redis or Redis("../database/spotthebot.rdb", db=1)
         loguru.logger.info(
             f"Snippets initialized. "
             f"`qredis -s {self.redis.connection_pool.connection_kwargs['path']} -n {db_index}`"
         )
+        if debugging:
+            subprocess.Popen(["qredis", "-s", self.redis.connection_pool.connection_kwargs['path'], "-n", str(db_index)])
 
         if self.redis.exists("snippet_id_counter"):
             self.snippet_count = self.redis.get("snippet_id_counter")

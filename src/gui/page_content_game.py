@@ -40,17 +40,17 @@ def submit(user_name: str, snippet: Snippet, points: int) -> None:
 def game_content(view_storage: ViewStorage) -> None:
     logger.info("Game page")
 
-    if view_storage.user is None:
-        # todo: DOES THIS WORK?
+    name_hash = app.storage.user.get("name_hash", None)
+    if name_hash is None:
+        app.storage.pop("name_hash", None)
         ui.open("/")
-        return
 
     with ui.header(elevated=True):
         link_home = ui.link("home", "/")
         label_title = ui.label("Spot the Bot")
 
     points = 25
-    snippet = next_snippet(view_storage.user.secret_name_hash)
+    snippet = next_snippet(name_hash)
     interactive_text = InteractiveText(snippet)
 
     with ui.column() as column:
