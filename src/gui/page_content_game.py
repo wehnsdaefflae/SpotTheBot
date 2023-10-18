@@ -2,11 +2,14 @@ import os
 import random
 
 from loguru import logger
-from nicegui import app, ui
+from nicegui import app, ui, Client
 
-from src.dataobjects import Snippet, ViewStorage
+from src.dataobjects import Snippet, ViewCallbacks
+from src.gui.elements.content_class import ContentPage
+from src.gui.elements.dialogs import persistent_dialog
+from src.gui.elements.frame import frame
 from src.gui.elements.interactive_text import InteractiveText
-from src.gui.frame import create_footer
+from src.gui.tools import get_from_local_storage
 
 
 def next_snippet(user_name: str | None = None) -> Snippet:
@@ -25,69 +28,72 @@ def next_snippet(user_name: str | None = None) -> Snippet:
     )
 
 
-def submit(user_name: str, snippet: Snippet, points: int) -> None:
-    identity_file = app.storage.user.pop("identity_file", None)
-    if identity_file is not None:
+async def submit(user_name: str, snippet: Snippet, points: int) -> None:
+    identity_file = await get_from_local_storage("identity_file")
+    if identity_file is not None and os.path.isfile(identity_file):
         os.remove(identity_file)
 
-    print(f"{user_name} assumed {hash(snippet)} as HUMAN with {points} points")
-    # update stats
-    #   if is_bot:
-    #       register as gullible
+    await persistent_dialog(f"{user_name} assumed {hash(snippet)} as HUMAN with {points} points")
     ui.open("/game")
 
 
-def game_content(view_storage: ViewStorage) -> None:
-    logger.info("Game page")
+class GameContent(ContentPage):
+    def __init__(self, client: Client, callbacks: ViewCallbacks) -> None:
+        super().__init__(client, callbacks)
+        self.points = 25
+        self.text_points = None
+        self.timer = None
 
-    name_hash = app.storage.user.get("name_hash", None)
-    if name_hash is None:
-        app.storage.pop("name_hash", None)
-        ui.open("/")
-
-    with ui.header(elevated=True):
-        link_home = ui.link("home", "/")
-        label_title = ui.label("Spot the Bot")
-
-    points = 25
-    snippet = next_snippet(name_hash)
-    interactive_text = InteractiveText(snippet)
-
-    with ui.column() as column:
-        text_display = interactive_text.get_content()
-
-        text_points = ui.markdown(f"{points} points remaining")
-
-        with ui.row() as row:
-            # retrieve stats
-            text_paranoid = ui.markdown("paranoid")
-            element_diagram = ui.element()
-            text_gullible = ui.markdown("gullible")
-
-    submit_button = ui.button(
-        interactive_text.submit_human,
-        on_click=lambda: submit(name_hash, snippet, points)
-    )
-    submit_button.classes("w-full justify-center")
-
-    async def init_tag_count() -> None:
+    @staticmethod
+    async def init_tag_count(button_id: int) -> None:
         url = await ui.run_javascript(f'new URL(window.location.href)', respond=True)
         if not url.endswith("/game"):
             return
         await ui.run_javascript("window.tag_count = {};", respond=False)
-        await ui.run_javascript(f"window.submit_button = document.getElementById('c{submit_button.id}');", respond=False)
+        await ui.run_javascript(f"window.submit_button = document.getElementById('c{button_id}');", respond=False)
         await ui.run_javascript("console.log('init finished')", respond=False)
 
-    app.on_connect(init_tag_count)
-    create_footer(view_storage)
-
-    def increment_counter() -> None:
-        nonlocal points
-        if 5 < points:
-            points -= 1
+    def increment_counter(self) -> None:
+        if 5 < self.points:
+            self.points -= 1
         else:
-            timer.deactivate()
-        text_points.content = f"{points} points remaining"
+            self.timer.deactivate()
 
-    timer = ui.timer(1, increment_counter)
+        self.text_points.content = f"{self.points} points remaining"
 
+    async def create_content(self) -> None:
+        logger.info("Game page")
+
+        await self.client.connected()
+
+        # app.on_connect(self.init_tag_count)
+
+        name_hash = await get_from_local_storage("name_hash")
+        if name_hash is None:
+            ui.open("/")
+
+        snippet = next_snippet(name_hash)
+
+        with frame() as _frame:
+            interactive_text = InteractiveText(snippet)
+
+            with ui.column() as column:
+                text_display = interactive_text.get_content()
+
+                self.text_points = ui.markdown(f"{self.points} points remaining")
+
+                with ui.row() as row:
+                    # retrieve stats
+                    text_paranoid = ui.markdown("paranoid")
+                    element_diagram = ui.element()
+                    text_gullible = ui.markdown("gullible")
+
+            submit_button = ui.button(
+                interactive_text.submit_human,
+                on_click=lambda: submit(name_hash, snippet, self.points)
+            )
+            submit_button.classes("w-full justify-center")
+
+            await GameContent.init_tag_count(submit_button.id)
+
+        self.timer = ui.timer(1, self.increment_counter)

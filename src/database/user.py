@@ -5,6 +5,7 @@ import sys
 
 import loguru
 import redislite.patch
+
 redislite.patch.patch_redis()
 
 from redis import Redis

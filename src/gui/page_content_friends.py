@@ -1,7 +1,7 @@
 from nicegui import ui
 
 from src.dataobjects import ViewStorage
-from src.gui.frame import create_footer
+from src.gui.elements.frame import create_footer
 
 from loguru import logger
 

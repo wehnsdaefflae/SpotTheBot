@@ -22,16 +22,19 @@ class StateUpdate:
 
 @dataclasses.dataclass(frozen=True)
 class Face:
-    shape: int = int(random.random() * 20)
-    ears: int = int(random.random() * 20)
-    mouth: int = int(random.random() * 20)
-    nose: int = int(random.random() * 20)
-    eyes: int = int(random.random() * 20)
-    hair: int = int(random.random() * 20)
-    accessory: int = int(random.random() * 20)
+    shape: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
+    ears: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
+    mouth: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
+    nose: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
+    eyes: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
+    hair: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
+    accessory: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
 
     def to_tuple(self) -> tuple[int, ...]:
         return self.shape, self.ears, self.mouth, self.nose, self.eyes, self.hair, self.accessory
+
+    def __str__(self) -> str:
+        return f"Shape: {self.shape}\nEars: {self.ears}\nMouth: {self.mouth}\nNose: {self.nose}\nEyes: {self.eyes}\nHair: {self.hair}\nAccessory: {self.accessory}"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -78,8 +81,3 @@ class Field(Enum):
 class ViewCallbacks:
     get_user: Callable[[str], User]
     create_user: Callable[[User], str]
-
-
-@dataclasses.dataclass
-class ViewStorage:
-    users: dict[str, User] = dataclasses.field(default_factory=dict)

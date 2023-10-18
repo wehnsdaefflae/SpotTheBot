@@ -1,6 +1,9 @@
 import datetime
 import tempfile
 
+from loguru import logger
+from nicegui import ui, client
+
 from src.tools.misc import hex_color_segmentation
 
 
@@ -33,3 +36,34 @@ def download_vcard(secret_name: str) -> tuple[str, str]:
         file.write(f"Secret identity for spotthebot.app: {secret_name}\n")
 
     return file.name, "spotthebot_secret_identity.txt"
+
+
+async def remove_from_local_storage(key: str) -> None:
+    try:
+        command = f"localStorage.removeItem('{key}')"
+        await ui.run_javascript(command, respond=False)
+
+    except TimeoutError as e:
+        logger.error(e)
+
+
+async def get_from_local_storage(key: str) -> str | None:
+    try:
+        command = f"localStorage.getItem('{key}')"
+        _result = await ui.run_javascript(command, respond=True)
+        result = _result
+
+    except TimeoutError as e:
+        logger.error(e)
+        result = None
+
+    return result
+
+
+async def set_in_local_storage(key: str, value: str) -> None:
+    try:
+        command = f"localStorage.setItem('{key}', '{value}')"
+        await ui.run_javascript(command, respond=False)
+
+    except TimeoutError as e:
+        logger.error(e)

@@ -4,7 +4,7 @@ from loguru import logger
 from nicegui import ui
 
 from src.dataobjects import ViewStorage
-from src.gui.frame import create_footer
+from src.gui.elements.frame import create_footer
 
 
 def results_content(view_storage: ViewStorage) -> None:
