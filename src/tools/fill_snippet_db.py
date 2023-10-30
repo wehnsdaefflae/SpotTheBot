@@ -48,7 +48,7 @@ def get_snippets(csv_file_path: pathlib.Path) -> Generator[Snippet, None, None]:
 def main() -> None:
     snippet_database = Snippets(redis=redislite.Redis("../../database/spotthebot.rdb", db=1))
 
-    path = pathlib.Path("/home/mark/PycharmProjects/SpotTheBot/data/YouTube Deutschland")
+    path = pathlib.Path("/home/mark/Downloads/kaggle/archive (11)/YouTube Deutschland")
     snippets_added = 0
 
     for each_dir in sorted(path.iterdir()):

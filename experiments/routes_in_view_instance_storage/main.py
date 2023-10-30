@@ -7,6 +7,7 @@ def main() -> None:
     print(f"running main app {app.title}")
 
     controller = Controller()
+    controller.view.create_routes()
 
     ui.run(host="0.0.0.0", port=8000, title="MWE", storage_secret="secret")
 
