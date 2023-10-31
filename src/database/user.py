@@ -3,10 +3,9 @@ import json
 import subprocess
 import sys
 
-import loguru
-import redislite.patch
-
-redislite.patch.patch_redis()
+from loguru import logger
+# import redislite.patch
+# redislite.patch.patch_redis()
 
 from redis import Redis
 
@@ -20,18 +19,9 @@ logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 
 
 
 class Users:
-    def __init__(self,
-                 redis: Redis | None = None,
-                 expiration_seconds: int = 60 * 60 * 24 * 7 * 30 * 6,
-                 debugging: bool = False) -> None:
-        db_index = 0
-        self.redis = redis or Redis("../database/spotthebot.rdb", db=db_index)
-        loguru.logger.info(
-            f"Users initialized. "
-            f"`qredis -s {self.redis.connection_pool.connection_kwargs['path']} -n {db_index}`"
-        )
-        if debugging:
-            subprocess.Popen(["qredis", "-s", self.redis.connection_pool.connection_kwargs['path'], "-n", str(db_index)])
+    def __init__(self, redis_conf: dict[str, str], expiration_seconds: int = 60 * 60 * 24 * 7 * 30 * 6) -> None:
+        self.redis = Redis(**redis_conf)
+        logger.info("Users initialized.")
 
         self.expiration_seconds = expiration_seconds
 

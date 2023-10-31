@@ -1,10 +1,11 @@
 # coding=utf-8
-
+import json
 import pathlib
 from typing import Generator
 
 import pandas
-import redislite
+# import redislite
+import redis
 import bs4
 
 from src.database.snippet import Snippets, Snippet
@@ -40,13 +41,29 @@ def get_snippets(csv_file_path: pathlib.Path) -> Generator[Snippet, None, None]:
         likes = each_row["Likes"]
         reply_count = each_row["Reply Count"]
 
-        metadata_dict = {"likes": int(likes), "reply_count": int(reply_count), "time": time_str, "channel": dir_name, "video": video_name}
+        metadata_dict = {
+            "likes": int(likes),
+            "reply_count": int(reply_count),
+            "time": time_str,
+            "channel": dir_name,
+            "video": video_name
+        }
         metadata = tuple(tuple(each_item) for each_item in metadata_dict.items())
-        yield Snippet(comment, f"Kommentar von '{name}' zum YouTube-Video '{video_name}' von {dir_name}", False, metadata)
+
+        yield Snippet(
+            comment,
+            f"Kommentar von '{name}' zum YouTube-Video '{video_name}' von {dir_name}",
+            False, metadata)
 
 
 def main() -> None:
-    snippet_database = Snippets(redis=redislite.Redis("../../database/spotthebot.rdb", db=1))
+    with open("../config.json", mode="r") as config_file:
+        config = json.load(config_file)
+
+    snippet_access = config["redis"]["snippets_database"]
+
+    interface = redis.Redis(**snippet_access)
+    snippet_database = Snippets(redis=interface)
 
     path = pathlib.Path("/home/mark/Downloads/kaggle/archive (11)/YouTube Deutschland")
     snippets_added = 0
@@ -68,11 +85,17 @@ def main() -> None:
                 if each_likes < 10 or len(each_snippet.text) < 250:
                     continue
 
-                snippet_database.set_snippet(each_snippet.text, each_snippet.source, each_snippet.is_bot, dict(each_snippet.metadata))
+                snippet_database.set_snippet(
+                    each_snippet.text,
+                    each_snippet.source,
+                    each_snippet.is_bot,
+                    dict(each_snippet.metadata)
+                )
                 snippets_added += 1
 
     print(f"Added {snippets_added} snippets.")
 
 
 if __name__ == "__main__":
+    # redis-server database/redis.conf
     main()

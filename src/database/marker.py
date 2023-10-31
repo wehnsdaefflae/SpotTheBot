@@ -1,9 +1,9 @@
 import subprocess
 import sys
 
-import loguru
-import redislite.patch
-redislite.patch.patch_redis()
+from loguru import logger
+# import redislite.patch
+# redislite.patch.patch_redis()
 
 from redis import Redis
 
@@ -19,12 +19,20 @@ class Markers:
     def __init__(self, redis: Redis | None = None, max_markers: int = 100, debugging: bool = False) -> None:
         db_index = 2
         self.redis = redis or Redis("../database/spotthebot.rdb", db=db_index)
-        loguru.logger.info(
-            f"Markers initialized. "
-            f"`qredis -s {self.redis.connection_pool.connection_kwargs['path']} -n {db_index}`"
-        )
-        if debugging:
-            subprocess.Popen(["qredis", "-s", self.redis.connection_pool.connection_kwargs['path'], "-n", str(db_index)])
+        try:
+            logger.info(
+                f"Markers initialized. "
+                f"`qredis -s {self.redis.connection_pool.connection_kwargs['path']} -n {db_index}`"
+            )
+            if debugging:
+                subprocess.Popen(
+                    ["qredis", "-s", self.redis.connection_pool.connection_kwargs['path'], "-n", str(db_index)])
+
+        except KeyError as e:
+            logger.warning(
+                "Markers initialized. No path to redis db found."
+            )
+            logger.warning(e)
 
         self.max_markers = max_markers
 

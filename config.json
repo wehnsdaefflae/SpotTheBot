@@ -1,0 +1,22 @@
+{
+  "redis": {
+    "users_database": {
+      "host": "localhost",
+      "port": 6379,
+      "password": "tr^G)4THQ)b6Xa4v",
+      "db": 0
+    },
+    "snippets_database": {
+      "host": "localhost",
+      "port": 6379,
+      "password": "tr^G)4THQ)b6Xa4v",
+      "db": 1
+    },
+    "markers_database": {
+      "host": "localhost",
+      "port": 6380,
+      "password": "tr^G)4THQ)b6Xa4v",
+      "db": 0
+    }
+  }
+}
