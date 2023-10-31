@@ -60,10 +60,10 @@ def main() -> None:
     with open("../config.json", mode="r") as config_file:
         config = json.load(config_file)
 
-    snippet_access = config["redis"]["snippets_database"]
+    database_configs = config["redis"]
+    snippets_config = database_configs["snippets_database"]
 
-    interface = redis.Redis(**snippet_access)
-    snippet_database = Snippets(redis=interface)
+    snippet_database = Snippets(snippets_config)
 
     path = pathlib.Path("/home/mark/Downloads/kaggle/archive (11)/YouTube Deutschland")
     snippets_added = 0
