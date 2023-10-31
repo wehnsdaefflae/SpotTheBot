@@ -7,7 +7,7 @@ from src.database.user import Users
 
 class Model:
     def __init__(self):
-        with open("config.json", mode="r") as config_file:
+        with open("../config.json", mode="r") as config_file:
             self.config = json.load(config_file)
 
         redis_config = self.config["redis"]
