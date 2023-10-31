@@ -2,7 +2,7 @@ import datetime
 import tempfile
 
 from loguru import logger
-from nicegui import ui, client
+from nicegui import ui
 
 from src.tools.misc import hex_color_segmentation
 
@@ -41,7 +41,7 @@ def download_vcard(secret_name: str) -> tuple[str, str]:
 async def remove_from_local_storage(key: str) -> None:
     try:
         command = f"localStorage.removeItem('{key}')"
-        await ui.run_javascript(command, respond=False)
+        _ = ui.run_javascript(command)
 
     except TimeoutError as e:
         logger.error(e)
@@ -50,8 +50,8 @@ async def remove_from_local_storage(key: str) -> None:
 async def get_from_local_storage(key: str) -> str | None:
     try:
         command = f"localStorage.getItem('{key}')"
-        _result = await ui.run_javascript(command, respond=True)
-        result = _result
+        _result = ui.run_javascript(command)
+        result = await _result
 
     except TimeoutError as e:
         logger.error(e)
@@ -63,7 +63,7 @@ async def get_from_local_storage(key: str) -> str | None:
 async def set_in_local_storage(key: str, value: str) -> None:
     try:
         command = f"localStorage.setItem('{key}', '{value}')"
-        await ui.run_javascript(command, respond=False)
+        _ = ui.run_javascript(command)
 
     except TimeoutError as e:
         logger.error(e)

@@ -46,12 +46,12 @@ class GameContent(ContentPage):
 
     @staticmethod
     async def init_tag_count(button_id: int) -> None:
-        url = await ui.run_javascript(f'new URL(window.location.href)', respond=True)
+        url = await ui.run_javascript(f'new URL(window.location.href)')
         if not url.endswith("/game"):
             return
-        await ui.run_javascript("window.tag_count = {};", respond=False)
-        await ui.run_javascript(f"window.submit_button = document.getElementById('c{button_id}');", respond=False)
-        await ui.run_javascript("console.log('init finished')", respond=False)
+        _ = ui.run_javascript("window.tag_count = {};")
+        _ = ui.run_javascript(f"window.submit_button = document.getElementById('c{button_id}');")
+        _ = ui.run_javascript("console.log('init finished')")
 
     def increment_counter(self) -> None:
         if 5 < self.points:

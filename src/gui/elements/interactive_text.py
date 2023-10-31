@@ -55,7 +55,10 @@ class InteractiveText:
             tag_word = self._get_tagging(word_label)
             with ui.menu() as menu:
                 for each_sign, each_color in signs_popular:
-                    each_item = ui.menu_item(each_sign, on_click=lambda _, sign=each_sign, color=each_color: tag_word(sign, None, color))
+                    each_item = ui.menu_item(
+                        each_sign,
+                        on_click=lambda _, sign=each_sign, color=each_color: tag_word(sign, None, color)
+                    )
                     each_item.style(add=f"background-color: {each_color};")
 
                 ui.separator()
@@ -64,7 +67,10 @@ class InteractiveText:
                         "something else...",
                         autocomplete=[each_sign for each_sign, _ in signs_rest]
                     )
-                    input_label.on("change", lambda: self._rare_tag(word_label, input_label.value, signs_rest, menu))
+                    input_label.on(
+                        "change",
+                        lambda: self._rare_tag(word_label, input_label.value, signs_rest, menu)
+                    )
 
             menu.move(word_label)
             menu.open()
@@ -79,7 +85,7 @@ class InteractiveText:
         async def _tag_word(tag: str, menu: ui.menu | None, color: str = "black") -> None:
             print(label_word.text + " ist zu " + tag)
             label_word.style(add=f"background-color: {color};")
-            await ui.run_javascript(f"console.log(\"colorizing {color}\"); ", respond=False)
+            _ = ui.run_javascript(f"console.log(\"colorizing {color}\"); ")
             label_word.sus_sign = tag
             await self.increment_tagged_word_count(tag)
             if menu is not None:
@@ -87,7 +93,13 @@ class InteractiveText:
 
         return _tag_word
 
-    async def _rare_tag(self, word_label: ui.label, tag: str, rest_colorized: tuple[tuple[str, str], ...], menu: ui.menu | None) -> None:
+    async def _rare_tag(
+            self,
+            word_label: ui.label,
+            tag: str,
+            rest_colorized: tuple[tuple[str, str], ...],
+            menu: ui.menu | None) -> None:
+
         tag_dict = {each_tag: each_color for each_tag, each_color in rest_colorized}
         color = tag_dict.get(tag, "grey")
         tag_word = self._get_tagging(word_label)
@@ -97,7 +109,7 @@ class InteractiveText:
         return self.content
 
     async def increment_tagged_word_count(self, tag: str) -> None:
-        await ui.run_javascript(f"console.log(\"incrementing '{tag}'...\"); ", respond=False)
+        _ = ui.run_javascript(f"console.log(\"incrementing '{tag}'...\"); ")
 
         js = (
             f"if (window.tag_count['{tag}']) {{",
@@ -107,10 +119,10 @@ class InteractiveText:
             "}"
         )
         js_concatenated = "\n".join(js)
-        await ui.run_javascript(js_concatenated, respond=False)
+        _ = ui.run_javascript(js_concatenated)
 
         js_line = f"window.submit_button.children[1].children[0].innerText = '{self.submit_bot}';"
-        await ui.run_javascript(js_line, respond=False)
+        _ = ui.run_javascript(js_line)
 
         tag_legend = self.legend_tags.get(tag)
         if tag_legend is not None:
@@ -118,12 +130,11 @@ class InteractiveText:
             tag_legend.set_visibility(c >= 1)
 
     async def get_tag_count(self, tag: str) -> int:
-        tag_count_str = await ui.run_javascript(f"window.tag_count['{tag}'] ? window.tag_count['{tag}'] : 0", respond=True)
+        tag_count_str = await ui.run_javascript(f"window.tag_count['{tag}'] ? window.tag_count['{tag}'] : 0")
         return tag_count_str
 
     async def decrement_tagged_word_count(self, tag: str) -> None:
-        # c = await self.get_tag_count(tag)
-        await ui.run_javascript(f"console.log(\"decrementing '{tag}'...\"); ", respond=False)
+        _ = ui.run_javascript(f"console.log(\"decrementing '{tag}'...\"); ")
 
         js = (
             f"window.tag_count['{tag}']--;",
@@ -135,7 +146,7 @@ class InteractiveText:
             f"    window.submit_button.children[1].children[0].innerText = '{self.submit_human}';",
             "}",
         )
-        await ui.run_javascript("\n".join(js), respond=False)
+        _ = ui.run_javascript("\n".join(js))
         tag_legend = self.legend_tags.get(tag)
         if tag_legend is not None:
             c = await self.get_tag_count(tag)

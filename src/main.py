@@ -7,12 +7,12 @@ from src.controller import Controller
 
 
 def main() -> None:
-    c = Controller()
-
     with open("../config.json", mode="r") as config_file:
         config = json.load(config_file)
 
-    nicegui_config = config["nicegui"]
+    nicegui_config = config.pop("nicegui")
+
+    c = Controller(config)
 
     ui.run(**nicegui_config)
 

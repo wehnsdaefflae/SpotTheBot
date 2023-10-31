@@ -6,15 +6,10 @@ from src.database.user import Users
 
 
 class Model:
-    def __init__(self):
-        with open("../config.json", mode="r") as config_file:
-            self.config = json.load(config_file)
-
-        redis_config = self.config["redis"]
-
-        users_db_config = redis_config["users_database"]
-        snippets_db_config = redis_config["snippets_database"]
-        markers_db_config = redis_config["markers_database"]
+    def __init__(self, redis_config: dict[str, any]) -> None:
+        users_db_config = redis_config.pop("users_database")
+        snippets_db_config = redis_config.pop("snippets_database")
+        markers_db_config = redis_config.pop("markers_database")
 
         self.users = Users(users_db_config)
         self.snippets = Snippets(snippets_db_config)
