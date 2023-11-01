@@ -1,6 +1,7 @@
 import dataclasses
 import random
 import time
+from collections import deque
 from enum import Enum
 from typing import Callable
 
@@ -60,6 +61,8 @@ class User:
     invited_by_user_id: int = -1
     created_at: float = dataclasses.field(default_factory=time.time)
 
+    recent_snippet_ids: deque[int] = dataclasses.field(default_factory=lambda: deque(maxlen=100))
+
 
 @dataclasses.dataclass(frozen=True)
 class Snippet:
@@ -81,3 +84,4 @@ class Field(Enum):
 class ViewCallbacks:
     get_user: Callable[[str], User]
     create_user: Callable[[User], str]
+    get_next_snippet: Callable[[User], Snippet]

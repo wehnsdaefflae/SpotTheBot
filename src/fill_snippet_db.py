@@ -4,8 +4,6 @@ import pathlib
 from typing import Generator
 
 import pandas
-# import redislite
-import redis
 import bs4
 
 from src.database.snippet import Snippets, Snippet

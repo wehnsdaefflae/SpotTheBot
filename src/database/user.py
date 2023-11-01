@@ -1,11 +1,9 @@
 # coding=utf-8
 import json
-import subprocess
 import sys
+from collections import deque
 
 from loguru import logger
-# import redislite.patch
-# redislite.patch.patch_redis()
 
 from redis import Redis
 
@@ -52,6 +50,7 @@ class Users:
             "last_negatives_rate": user.state.last_negatives_rate,
             "invited_by_user_id": user.invited_by_user_id,
             "created_at": user.created_at,
+            "recent_snippet_ids": json.dumps(list(user.recent_snippet_ids)),
         })
         self.redis.set(name_hash_key, user_id)
 
@@ -88,6 +87,7 @@ class Users:
         state = State(data.pop("last_positives_rate"), data.pop("last_negatives_rate"))
         face_tuple = json.loads(data.pop("face"))
         face = Face(*face_tuple)
+        recent_snippet_ids = json.loads(data.pop("recent_snippet_ids"))
         return User(
             secret_name_hash=data.pop("secret_name_hash"),
             face=face,
@@ -96,6 +96,7 @@ class Users:
             db_id=user_id,
             invited_by_user_id=data.pop("invited_by_user_id"),
             created_at=data.pop("created_at"),
+            recent_snippet_ids=deque(recent_snippet_ids)
         )
 
     def get_friend(self, friend_id: int) -> Friend:

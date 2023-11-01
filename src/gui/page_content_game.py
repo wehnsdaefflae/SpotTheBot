@@ -2,7 +2,7 @@ import os
 import random
 
 from loguru import logger
-from nicegui import app, ui, Client
+from nicegui import ui, Client
 
 from src.dataobjects import Snippet, ViewCallbacks
 from src.gui.elements.content_class import ContentPage
@@ -12,7 +12,7 @@ from src.gui.elements.interactive_text import InteractiveText
 from src.gui.tools import get_from_local_storage
 
 
-def next_snippet(user_name: str | None = None) -> Snippet:
+def _next_snippet(user_name: str | None = None) -> Snippet:
     content = (
         f"TEXT {random.randint(0, 100)}:\n"
         f"\n"
@@ -31,11 +31,17 @@ def next_snippet(user_name: str | None = None) -> Snippet:
 
 
 async def submit(user_name: str, snippet: Snippet, points: int) -> None:
+    # todo:
+    #  update user in database
+    #   recent snippets
+    #   state
+    #  update markers
+    #  give feedback
     identity_file = await get_from_local_storage("identity_file")
     if identity_file is not None and os.path.isfile(identity_file):
         os.remove(identity_file)
 
-    await persistent_dialog(f"{user_name} assumed {hash(snippet)} as HUMAN with {points} points")
+    await persistent_dialog(f"{user_name} assumed {snippet.db_id} as HUMAN with {points} points")
     ui.open("/game")
 
 
@@ -48,6 +54,8 @@ class GameContent(ContentPage):
 
         self.submit_human = "I am sure it is fine..."
         self.submit_bot = "It is a bot!"
+
+        self.user = None
 
     def init_javascript(self, button_id: str) -> None:
         init_js = (
@@ -95,7 +103,8 @@ class GameContent(ContentPage):
         if name_hash is None:
             ui.open("/")
 
-        snippet = next_snippet(name_hash)
+        user = self.callbacks.get_user(name_hash)
+        snippet = self.callbacks.get_next_snippet(user)
 
         with frame() as _frame:
             interactive_text = InteractiveText(snippet)

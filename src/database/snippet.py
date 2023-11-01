@@ -1,10 +1,11 @@
 # coding=utf-8
 import json
+import random
 
 from loguru import logger
 from redis import Redis
 
-from src.dataobjects import Snippet
+from src.dataobjects import Snippet, User
 
 
 class Snippets:
@@ -13,7 +14,7 @@ class Snippets:
         logger.info("Snippets initialized.")
 
         if self.redis.exists("snippet_id_counter"):
-            self.snippet_count = self.redis.get("snippet_id_counter")
+            self.snippet_count = int(self.redis.get("snippet_id_counter"))
         else:
             self.snippet_count = 0
             self.redis.set("snippet_id_counter", self.snippet_count)
@@ -28,7 +29,7 @@ class Snippets:
             "metadata": json.dumps(metadata)
         })
 
-        self.snippet_count = self.redis.incr("snippet_id_counter")
+        self.snippet_count = int(self.redis.incr("snippet_id_counter"))
         return snippet_key
 
     def get_snippet(self, snippet_id: int) -> Snippet:
@@ -44,6 +45,14 @@ class Snippets:
 
         metadata = json.loads(data.pop("metadata"))
         return Snippet(data.pop("text"), data.pop("source"), bool(int(data.pop("is_bot"))), metadata, db_id=snippet_id)
+
+    def get_next_snippet(self, user: User) -> Snippet:
+        recent_snippet_ids = user.recent_snippet_ids
+        while (random_snippet_id := random.randint(0, self.snippet_count - 1)) in recent_snippet_ids:
+            pass
+        recent_snippet_ids.append(random_snippet_id)
+        snippet = self.get_snippet(random_snippet_id)
+        return snippet
 
     def remove_snippet(self, snippet_id: int) -> None:
         snippet_key = f"snippet:{snippet_id}"

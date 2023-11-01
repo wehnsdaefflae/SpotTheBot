@@ -12,6 +12,7 @@ class Controller:
         view_callbacks = ViewCallbacks(
             self.model.users.get_user,
             self.model.users.create_user,
+            self.model.snippets.get_next_snippet,
         )
 
         self.view.set_callbacks(view_callbacks)
