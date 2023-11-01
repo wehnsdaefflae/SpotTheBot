@@ -10,41 +10,12 @@ from src.dataobjects import Snippet
 
 class InteractiveText:
     def __init__(self, snippet: Snippet):
-        self.submit_human = "I am sure it is fine..."
-        self.submit_bot = "It is a bot!"
         self.snippet = snippet
         self.signs_dict = get_signs()
         self.colorized_signs = colorize(self.signs_dict)
         self.legend_tags = dict()
         self.content = self._generate_content()
         self.legend = None
-
-    def init_javascript(self, button_id: str) -> None:
-        init_js = (
-            "window.spotTheBot = {",
-            "    tag_count: {},",
-            f"    submit_button: document.getElementById('{button_id}'),",
-            "    increment: function(tag) {",
-            f"        console.log(\"incrementing \" + tag + \"...\"); "
-            "        this.tag_count[tag] = (this.tag_count[tag] || 0) + 1;",
-            "        this.submit_button.children[1].children[0].innerText = '" + self.submit_bot + "';",
-            "        return this.tag_count[tag];",
-            "    },",
-            "    decrement: function(tag) {",
-            f"        console.log(\"decrementing \" + tag + \"...\"); ",
-            "        this.tag_count[tag]--;",
-            "        let sum = 0;",
-            "        for (let key in this.tag_count) {",
-            "            sum += this.tag_count[key];",
-            "        }",
-            "        if (sum === 0) {",
-            f"            this.submit_button.children[1].children[0].innerText = '{self.submit_human}';",
-            "        }",
-            "        return this.tag_count[tag];",
-            "    }",
-            "};"
-        )
-        _ = ui.run_javascript("\n".join(init_js))
 
     def _generate_content(self) -> ui.column:
         lines = self.snippet.text.split("\n")

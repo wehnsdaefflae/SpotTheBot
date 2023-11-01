@@ -46,16 +46,37 @@ class GameContent(ContentPage):
         self.text_points = None
         self.timer = None
 
-    @staticmethod
-    async def init_tag_count(button_id: int) -> None:
-        url = await ui.run_javascript(f'new URL(window.location.href)')
-        if not url.endswith("/game"):
-            return
-        _ = ui.run_javascript("window.tag_count = {};")
-        _ = ui.run_javascript(f"window.submit_button = document.getElementById('c{button_id}');")
-        _ = ui.run_javascript("console.log('init finished')")
+        self.submit_human = "I am sure it is fine..."
+        self.submit_bot = "It is a bot!"
 
-    def increment_counter(self) -> None:
+    def init_javascript(self, button_id: str) -> None:
+        init_js = (
+            "window.spotTheBot = {",
+            "    tag_count: {},",
+            f"    submit_button: document.getElementById('{button_id}'),",
+            "    increment: function(tag) {",
+            f"        console.log(\"incrementing \" + tag + \"...\"); "
+            "        this.tag_count[tag] = (this.tag_count[tag] || 0) + 1;",
+            "        this.submit_button.children[1].children[0].innerText = '" + self.submit_bot + "';",
+            "        return this.tag_count[tag];",
+            "    },",
+            "    decrement: function(tag) {",
+            f"        console.log(\"decrementing \" + tag + \"...\"); ",
+            "        this.tag_count[tag]--;",
+            "        let sum = 0;",
+            "        for (let key in this.tag_count) {",
+            "            sum += this.tag_count[key];",
+            "        }",
+            "        if (sum === 0) {",
+            f"            this.submit_button.children[1].children[0].innerText = '{self.submit_human}';",
+            "        }",
+            "        return this.tag_count[tag];",
+            "    }",
+            "};"
+        )
+        _ = ui.run_javascript("\n".join(init_js))
+
+    def decrement_points(self) -> None:
         if 5 < self.points:
             self.points -= 1
         else:
@@ -91,12 +112,10 @@ class GameContent(ContentPage):
                     text_gullible = ui.markdown("gullible")
 
             submit_button = ui.button(
-                interactive_text.submit_human,
+                self.submit_human,
                 on_click=lambda: submit(name_hash, snippet, self.points)
             )
             submit_button.classes("w-full justify-center")
-            interactive_text.init_javascript(f"c{submit_button.id}")
+            self.init_javascript(f"c{submit_button.id}")
 
-            # await GameContent.init_tag_count(submit_button.id)
-
-        self.timer = ui.timer(1, self.increment_counter)
+        self.timer = ui.timer(1, self.decrement_points)
