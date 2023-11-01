@@ -95,7 +95,8 @@ class GameContent(ContentPage):
                 on_click=lambda: submit(name_hash, snippet, self.points)
             )
             submit_button.classes("w-full justify-center")
+            interactive_text.init_javascript(f"c{submit_button.id}")
 
-            await GameContent.init_tag_count(submit_button.id)
+            # await GameContent.init_tag_count(submit_button.id)
 
         self.timer = ui.timer(1, self.increment_counter)

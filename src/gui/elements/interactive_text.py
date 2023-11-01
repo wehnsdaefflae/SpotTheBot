@@ -19,6 +19,33 @@ class InteractiveText:
         self.content = self._generate_content()
         self.legend = None
 
+    def init_javascript(self, button_id: str) -> None:
+        init_js = (
+            "window.spotTheBot = {",
+            "    tag_count: {},",
+            f"    submit_button: document.getElementById('{button_id}'),",
+            "    increment: function(tag) {",
+            f"        console.log(\"incrementing \" + tag + \"...\"); "
+            "        this.tag_count[tag] = (this.tag_count[tag] || 0) + 1;",
+            "        this.submit_button.children[1].children[0].innerText = '" + self.submit_bot + "';",
+            "        return this.tag_count[tag];",
+            "    },",
+            "    decrement: function(tag) {",
+            f"        console.log(\"decrementing \" + tag + \"...\"); ",
+            "        this.tag_count[tag]--;",
+            "        let sum = 0;",
+            "        for (let key in this.tag_count) {",
+            "            sum += this.tag_count[key];",
+            "        }",
+            "        if (sum === 0) {",
+            f"            this.submit_button.children[1].children[0].innerText = '{self.submit_human}';",
+            "        }",
+            "        return this.tag_count[tag];",
+            "    }",
+            "};"
+        )
+        _ = ui.run_javascript("\n".join(init_js))
+
     def _generate_content(self) -> ui.column:
         lines = self.snippet.text.split("\n")
 
@@ -85,7 +112,7 @@ class InteractiveText:
         async def _tag_word(tag: str, menu: ui.menu | None, color: str = "black") -> None:
             print(label_word.text + " ist zu " + tag)
             label_word.style(add=f"background-color: {color};")
-            _ = ui.run_javascript(f"console.log(\"colorizing {color}\"); ")
+            _ = ui.run_javascript(f"console.log(\"colorizing {color}\");")
             label_word.sus_sign = tag
             await self.increment_tagged_word_count(tag)
             if menu is not None:
@@ -109,45 +136,16 @@ class InteractiveText:
         return self.content
 
     async def increment_tagged_word_count(self, tag: str) -> None:
-        _ = ui.run_javascript(f"console.log(\"incrementing '{tag}'...\"); ")
-
-        js = (
-            f"if (window.tag_count['{tag}']) {{",
-            f"    window.tag_count['{tag}']++;",
-            "} else {",
-            f"    window.tag_count['{tag}'] = 1;",
-            "}"
-        )
-        js_concatenated = "\n".join(js)
-        _ = ui.run_javascript(js_concatenated)
-
-        js_line = f"window.submit_button.children[1].children[0].innerText = '{self.submit_bot}';"
-        _ = ui.run_javascript(js_line)
+        js = f"window.spotTheBot.increment('{tag}');"
+        count = await ui.run_javascript(js)
 
         tag_legend = self.legend_tags.get(tag)
         if tag_legend is not None:
-            c = await self.get_tag_count(tag)
-            tag_legend.set_visibility(c >= 1)
-
-    async def get_tag_count(self, tag: str) -> int:
-        tag_count_str = await ui.run_javascript(f"window.tag_count['{tag}'] ? window.tag_count['{tag}'] : 0")
-        return tag_count_str
+            tag_legend.set_visibility(count >= 1)
 
     async def decrement_tagged_word_count(self, tag: str) -> None:
-        _ = ui.run_javascript(f"console.log(\"decrementing '{tag}'...\"); ")
-
-        js = (
-            f"window.tag_count['{tag}']--;",
-            "let sum = 0;",
-            "for (let key in window.tag_count) {",
-            "    sum += window.tag_count[key];",
-            "}",
-            "if (sum === 0) {",
-            f"    window.submit_button.children[1].children[0].innerText = '{self.submit_human}';",
-            "}",
-        )
-        _ = ui.run_javascript("\n".join(js))
+        js = f"window.spotTheBot.decrement('{tag}');"
+        count = await ui.run_javascript(js)
         tag_legend = self.legend_tags.get(tag)
         if tag_legend is not None:
-            c = await self.get_tag_count(tag)
-            tag_legend.set_visibility(c >= 1)
+            tag_legend.set_visibility(count >= 1)
