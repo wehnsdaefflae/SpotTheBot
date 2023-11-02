@@ -7,13 +7,6 @@ from typing import Callable
 
 
 @dataclasses.dataclass(frozen=True)
-class Snippet:
-    source: str
-    content: str
-    is_fake: bool
-
-
-@dataclasses.dataclass(frozen=True)
 class StateUpdate:
     true_positives: int
     true_negatives: int
@@ -85,3 +78,13 @@ class ViewCallbacks:
     get_user: Callable[[str], User]
     create_user: Callable[[User], str]
     get_next_snippet: Callable[[User], Snippet]
+
+
+@dataclasses.dataclass
+class Marker:
+    label: str
+
+    true_positives: int = 0
+    true_negatives: int = 0
+    false_positives: int = 0
+    false_negatives: int = 0

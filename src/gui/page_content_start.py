@@ -97,8 +97,20 @@ class StartContent(ContentPage):
                 title_label = ui.label("Look out for robots!")
                 title_label.classes("text-h4 font-bold text-grey-8")
 
-                for i in range(4):
-                    each_indicator_label = ui.label(f"[indicator {i + 1}] [accuracy]")
+                with ui.row():
+                    with ui.column():
+                        ui.markdown("What robots sound like:")
+                        # most true positives among positives
+                        # Attributes most commonly and correctly identified by users as robot-like
+                        for i in range(4):
+                            each_indicator_label = ui.label(f"[indicator {i + 1}] [accuracy]")
+
+                    with ui.column():
+                        ui.markdown("What humans **do not** sound like:")
+                        # most false positives among negatives
+                        # Attributes users most commonly mistake as robot-like in human-written text
+                        for i in range(4):
+                            each_indicator_label = ui.label(f"[indicator {i + 1}] [accuracy]")
 
                 face_element = show_face(self.user.face)
 
