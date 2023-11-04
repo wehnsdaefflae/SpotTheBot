@@ -17,6 +17,8 @@ class Markers:
     def _update_ratios(self, marker_name: str) -> None:
         """Public method to update ratios for a specific marker."""
 
+        # markers cannot be true negatives
+        # we need positives and negatives here
         marker_key = f"marker:{marker_name}"
         true_positives = int(self.redis.hget(marker_key, "true_positives") or 0)
         false_negatives = int(self.redis.hget(marker_key, "false_negatives") or 0)
