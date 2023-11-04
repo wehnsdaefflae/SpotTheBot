@@ -84,7 +84,7 @@ class UserManager:
         }
 
         friends = self.get_friends(user_id)
-        state = State(data.pop("last_positives_rate"), data.pop("last_negatives_rate"))
+        state = State(data.pop("precision"), data.pop("specificity"))
         face_tuple = json.loads(data.pop("face"))
         face = Face(*face_tuple)
         recent_snippet_ids = json.loads(data.pop("recent_snippet_ids"))
@@ -161,27 +161,29 @@ class UserManager:
 
         self._reset_user_expiration(f"user:{user_id}")
 
-    def update_user_state(self, user_key: str, field: Field, inertia: int = 10) -> None:
+    def update_user_state(self, user: User, field: Field, inertia: int = 10) -> None:
+        user_key = f"user:{user.db_id}"
+
         if field == Field.TRUE_POSITIVES:
-            precision = int(self.redis.hget(user_key, "precision") or 0.)
+            precision = float(self.redis.hget(user_key, "precision") or 0.)
             self.redis.hset(user_key, mapping={
                 "precision": (precision * inertia + 1.) / (inertia + 1.),
             })
 
         elif field == Field.FALSE_POSITIVES:
-            precision = int(self.redis.hget(user_key, "precision") or 0.)
+            precision = float(self.redis.hget(user_key, "precision") or 0.)
             self.redis.hset(user_key, mapping={
                 "precision": (precision * inertia + 0.) / (inertia + 1.),
             })
 
         elif field == Field.TRUE_NEGATIVES:
-            specificity = int(self.redis.hget(user_key, "specificity") or 0.)
+            specificity = float(self.redis.hget(user_key, "specificity") or 0.)
             self.redis.hset(user_key, mapping={
                 "specificity": (specificity * inertia + 1.) / (inertia + 1.)
             })
 
         elif field == Field.FALSE_NEGATIVES:
-            specificity = int(self.redis.hget(user_key, "specificity") or 0.)
+            specificity = float(self.redis.hget(user_key, "specificity") or 0.)
             self.redis.hset(user_key, mapping={
                 "specificity": (specificity * inertia + 0.) / (inertia + 1.)
             })
