@@ -1,66 +1,107 @@
-import os
+import json
 import unittest
 
-import redislite
 from loguru import logger
 
-from src.database.marker import Markers
+from src.database.marker_manager import MarkerManager
 from src.dataobjects import Field
 
 
 class TestMarkers(unittest.TestCase):
 
     def setUp(self) -> None:
-        print("deleting last test database...")
-        if os.path.isfile("test_spotthebot.rdb"):
-            os.remove("test_spotthebot.rdb")
-        if os.path.isfile("test_spotthebot.rdb.settings"):
-            os.remove("test_spotthebot.rdb.settings")
-
+        # Remove any existing test database files
         logger.info(f"Starting up marker database tests.")
-        self.redis = redislite.Redis("test_spotthebot.rdb", db=1)
-        self.markers = Markers(redis=self.redis)
+
+        # Initialize MarkerManager with a redislite Redis instance
+        with open("../../config.json", mode="r") as config_file:
+            config = json.load(config_file)
+
+        self.max_markers = 10
+        database_config = config.pop("redis")
+        markers_config = database_config.pop("markers_database")
+        markers_config["db"] += 10  # test index
+        self.db_index = markers_config["db"]
+
+        self.markers = MarkerManager(markers_config, max_markers=self.max_markers)
 
     def tearDown(self) -> None:
-        self.redis.flushall()
-        self.redis.close()
+        self.markers.redis.select(self.db_index)
+        self.markers.redis.flushdb()
 
-    def test_increment_marker(self) -> None:
-        self.markers.increment_marker("test_marker", Field.TRUE_POSITIVES)
-        value = self.markers.get_marker_value("test_marker", Field.TRUE_POSITIVES)
-        self.assertEqual(value, 1)
+    def test_evict_markers(self):
+        # Prepopulate the sorted set with more markers than max_markers
+        for i in range(self.max_markers + 5):
+            marker_name = f"marker{i}"
+            self.markers.redis.zadd("total_count_sortedset", {marker_name: i})
 
-    def test_remove_marker(self) -> None:
-        self.markers.increment_marker("test_marker", Field.TRUE_POSITIVES)
-        self.markers.remove_marker("test_marker")
-        value = self.markers.get_marker_value("test_marker", Field.TRUE_POSITIVES)
-        self.assertEqual(value, 0)
+        # Call evict_markers and expect it to evict markers to comply with max_markers limit
+        self.markers.evict_markers()
 
-    def test_max_markers(self) -> None:
-        for i in range(150):  # Add 150 markers
-            each_marker_name = f"marker_{i}"
-            self.markers.increment_marker(each_marker_name, Field.TRUE_POSITIVES)
+        # Check if the number of markers is now equal to max_markers
+        current_marker_count = self.markers.redis.zcard("total_count_sortedset")
+        self.assertEqual(current_marker_count, self.max_markers)
 
-        # Make sure we only have 100 markers
-        markers_list_length = self.redis.llen("markers_list")
-        self.assertEqual(markers_list_length, 100)
+    def test_update_ratios(self):
+        # Populate Redis with marker data
+        marker_name = "test_marker"
+        true_positives = 5
+        false_positives = 3
 
-        # Check if the oldest markers are removed
-        self.assertIsNone(self.redis.hget("marker:marker_0", Field.TRUE_POSITIVES.value))
-        self.assertIsNone(self.redis.hget("marker:marker_49", Field.TRUE_POSITIVES.value))
-        self.assertIsNotNone(self.redis.hget("marker:marker_50", Field.TRUE_POSITIVES.value))
+        for _ in range(true_positives):
+            self.markers.increment_marker(marker_name, Field.TRUE_POSITIVES)
 
-    def test_update_marker_list(self) -> None:
-        self.markers.increment_marker("marker_1", Field.TRUE_POSITIVES)
-        self.markers.increment_marker("marker_2", Field.TRUE_POSITIVES)
-        self.markers.increment_marker("marker_1", Field.FALSE_POSITIVES)
+        for _ in range(false_positives):
+            self.markers.increment_marker(marker_name, Field.FALSE_POSITIVES)
 
-        # marker_1 should be the most recent marker in the list
-        recent_marker_bytes = self.redis.lindex("markers_list", 0)
-        self.assertIsInstance(recent_marker_bytes, bytes)
-        recent_marker = recent_marker_bytes.decode()
-        self.assertEqual(recent_marker, "marker_1")
+        tp_ratio, fp_ratio = self.markers.get_marker_ratios(marker_name)
+        self.assertEqual(tp_ratio, true_positives / (true_positives + false_positives))
+        self.assertEqual(fp_ratio, false_positives / (true_positives + false_positives))
+
+    def test_update_counts(self):
+        # Populate Redis with marker data
+        marker_name = "test_marker"
+        true_positives = 5
+        false_positives = 3
+
+        for _ in range(true_positives):
+            self.markers.increment_marker(marker_name, Field.TRUE_POSITIVES)
+
+        for _ in range(false_positives):
+            self.markers.increment_marker(marker_name, Field.FALSE_POSITIVES)
+
+        _true_positives, _false_positives = self.markers.get_marker_counts(marker_name)
+        self.assertEqual(_true_positives, true_positives)
+        self.assertEqual(_false_positives, false_positives)
+
+    def test_get_markers_by_count(self):
+        # Prepopulate sorted set with markers
+        expected_markers = list()
+        for i in range(5):
+            marker_name = f"marker{i}"
+            self.markers.redis.zadd("total_count_sortedset", {marker_name: i})
+            expected_markers.append((marker_name, i))
+
+        retrieved_markers = self.markers.get_markers_by_count(5)
+
+        # Assert that retrieved markers match expected markers
+        self.assertEqual(retrieved_markers, list(reversed(expected_markers)))
+
+    def test_get_markers_by_ratio(self):
+        # Prepopulate sorted sets with markers and their ratios
+        for i in range(5):
+            marker_name = f"marker{i}"
+            tp_score = i / 10
+            fp_score = (5 - i) / 10
+            self.markers.redis.zadd("tp_ratio_sortedset", {marker_name: tp_score})
+            self.markers.redis.zadd("fp_ratio_sortedset", {marker_name: fp_score})
+
+        tp_markers, fp_markers = self.markers.get_markers_by_ratio(5)
+
+        # Assert that the markers with the highest ratios are retrieved
+        self.assertEqual(tp_markers[0][0], "marker4")  # Highest TP ratio
+        self.assertEqual(fp_markers[0][0], "marker0")  # Highest FP ratio
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

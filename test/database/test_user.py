@@ -1,35 +1,41 @@
 import hashlib
-import os
+import json
 import unittest
-import redislite
 from typing import Tuple
 
 from loguru import logger
 
-from src.database.user import Users
-from src.dataobjects import StateUpdate
+from src.database.user_manager import UserManager
+from src.dataobjects import StateUpdate, User
 
 
 class TestUsers(unittest.TestCase):
 
     def setUp(self) -> None:
-        print("deleting last test database...")
-        if os.path.isfile("test_spotthebot.rdb"):
-            os.remove("test_spotthebot.rdb")
-        if os.path.isfile("test_spotthebot.rdb.settings"):
-            os.remove("test_spotthebot.rdb.settings")
+        logger.info(f"Starting up user database tests.")
 
-        logger.info("Setting up user database tests.")
-        self.redis = redislite.Redis("test_spotthebot.rdb", db=0)
-        self.users = Users(redis=self.redis)
+        with open("../../config.json", mode="r") as config_file:
+            config = json.load(config_file)
+
+        self.max_markers = 10
+        database_config = config.pop("redis")
+        users_config = database_config.pop("users_database")
+        users_config["db"] += 10  # test index
+        self.db_index = users_config["db"]
+
+        self.users = UserManager(users_config)
+        self.redis = self.users.redis
 
     def tearDown(self) -> None:
         self.redis.flushdb()
         self.redis.close()
 
     def create_two_users(self) -> Tuple[int, int]:
-        secret_name_user = self.users.create_user("Jane Doe")
-        secret_name_friend = self.users.create_user("John Doe")
+        user_a = User("Jane Doe")
+        user_b = User("John Doe")
+
+        secret_name_user = self.users.create_user(user_a)
+        secret_name_friend = self.users.create_user(user_b)
 
         name_hash_user = hashlib.sha256(secret_name_user.encode()).hexdigest()
         name_hash_friend = hashlib.sha256(secret_name_friend.encode()).hexdigest()
@@ -43,13 +49,15 @@ class TestUsers(unittest.TestCase):
         return user_id, friend_id
 
     def test_create_user(self) -> None:
-        secret_name = self.users.create_user("John Doe")
+        user = User("John Doe")
+        secret_name = self.users.create_user(user)
         name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
         user = self.users.get_user(name_hash)
         self.assertEqual(user.secret_name_hash, name_hash)
 
     def test_delete_user(self) -> None:
-        secret_name = self.users.create_user("John Doe")
+        user = User("John Doe")
+        secret_name = self.users.create_user(user)
         name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
         user = self.users.get_user(name_hash)
         user_id = user.db_id
@@ -76,7 +84,8 @@ class TestUsers(unittest.TestCase):
         self.assertFalse(user_id in {each_friend.db_id for each_friend in self.users.get_friends(friend_id)})
 
     def test_update_user_state(self) -> None:
-        secret_name = self.users.create_user("John Doe")
+        user = User("John Doe")
+        secret_name = self.users.create_user(user)
         name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
         user = self.users.get_user(name_hash)
         user_id = user.db_id
@@ -99,7 +108,8 @@ class TestUsers(unittest.TestCase):
         self.assertTrue(friend_id in {each_friend.db_id for each_friend in friends})
 
     def test_set_user_progress(self) -> None:
-        secret_name = self.users.create_user("John Doe")
+        user = User("John Doe")
+        secret_name = self.users.create_user(user)
         name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
         user = self.users.get_user(name_hash)
         user_id = user.db_id

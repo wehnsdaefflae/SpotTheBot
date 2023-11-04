@@ -1,6 +1,6 @@
 import json
 
-from src.database.marker import Markers
+from src.database.marker import MarkerManager
 
 
 def main() -> None:
@@ -10,7 +10,7 @@ def main() -> None:
     database_configs = config["redis"]
     markers_config = database_configs["markers_database"]
 
-    marker_database = Markers(markers_config)
+    marker_database = MarkerManager(markers_config)
 
     marker: Marker
 

@@ -1,6 +1,6 @@
 import redislite
 
-from src.database.marker import Markers
+from src.database.marker import MarkerManager
 from src.database.snippet import Snippets
 from src.database.user import Users
 
@@ -19,7 +19,7 @@ def main() -> None:
 
     user_db = Users(user_interface)
     snippet_db = Snippets(snippet_interface)
-    marker_db = Markers(marker_interface)
+    marker_db = MarkerManager(marker_interface)
 
 
 if __name__ == '__main__':

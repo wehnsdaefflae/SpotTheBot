@@ -8,7 +8,7 @@ from redis import Redis
 from src.dataobjects import Snippet, User
 
 
-class Snippets:
+class SnippetManager:
     def __init__(self, redis_conf: dict[str, str]):
         self.redis = Redis(**redis_conf)
         logger.info("Snippets initialized.")

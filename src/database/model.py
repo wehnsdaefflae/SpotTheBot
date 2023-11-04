@@ -1,8 +1,6 @@
-import json
-
-from src.database.marker import Markers
-from src.database.snippet import Snippets
-from src.database.user import Users
+from src.database.marker_manager import MarkerManager
+from src.database.snippet_manager import SnippetManager
+from src.database.user_manager import UserManager
 
 
 class Model:
@@ -11,6 +9,6 @@ class Model:
         snippets_db_config = redis_config.pop("snippets_database")
         markers_db_config = redis_config.pop("markers_database")
 
-        self.users = Users(users_db_config)
-        self.snippets = Snippets(snippets_db_config)
-        self.markers = Markers(markers_db_config)
+        self.users = UserManager(users_db_config)
+        self.snippets = SnippetManager(snippets_db_config)
+        self.markers = MarkerManager(markers_db_config, max_markers=100)

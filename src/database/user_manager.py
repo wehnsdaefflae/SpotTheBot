@@ -16,7 +16,7 @@ logger.add(sys.stderr, format="{time} {level} {message}", colorize=True, level="
 logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 MB", level="DEBUG")
 
 
-class Users:
+class UserManager:
     def __init__(self, redis_conf: dict[str, str], expiration_seconds: int = 60 * 60 * 24 * 7 * 30 * 6) -> None:
         self.redis = Redis(**redis_conf)
         logger.info("Users initialized.")

@@ -6,7 +6,8 @@ from typing import Generator
 import pandas
 import bs4
 
-from src.database.snippet import Snippets, Snippet
+from src.database.snippet_manager import SnippetManager
+from src.dataobjects import Snippet
 
 
 def get_snippets(csv_file_path: pathlib.Path) -> Generator[Snippet, None, None]:
@@ -61,7 +62,7 @@ def main() -> None:
     database_configs = config["redis"]
     snippets_config = database_configs["snippets_database"]
 
-    snippet_database = Snippets(snippets_config)
+    snippet_database = SnippetManager(snippets_config)
 
     path = pathlib.Path("/home/mark/Downloads/kaggle/archive (11)/YouTube Deutschland")
     snippets_added = 0
@@ -86,7 +87,7 @@ def main() -> None:
                 snippet_database.set_snippet(
                     each_snippet.text,
                     each_snippet.source,
-                    each_snippet.is_bot,
+                    True,  # each_snippet.is_bot,
                     dict(each_snippet.metadata)
                 )
                 snippets_added += 1

@@ -1,32 +1,33 @@
-import os
-import sys
+import json
 import unittest
-import redislite
 from loguru import logger
 
-from src.database.snippet import Snippets
+from src.database.snippet_manager import SnippetManager
 
 
 class TestSnippets(unittest.TestCase):
 
     def setUp(self):
-        print("deleting last test database...")
-        if os.path.isfile("test_spotthebot.rdb"):
-            os.remove("test_spotthebot.rdb")
-        if os.path.isfile("test_spotthebot.rdb.settings"):
-            os.remove("test_spotthebot.rdb.settings")
+        logger.info(f"Starting up snippet database tests.")
 
-        logger.info("Starting up snippet database tests.")
-        self.redis = redislite.Redis("test_spotthebot.rdb", db=2)
-        self.snippets = Snippets(redis=self.redis)
+        with open("../../config.json", mode="r") as config_file:
+            config = json.load(config_file)
+
+        self.max_markers = 10
+        database_config = config.pop("redis")
+        snippets_config = database_config.pop("snippets_database")
+        snippets_config["db"] += 10  # test index
+        self.db_index = snippets_config["db"]
+
+        self.snippets = SnippetManager(snippets_config)
 
     def tearDown(self):
-        self.redis.flushall()
-        self.redis.close()
+        self.snippets.redis.select(self.db_index)
+        self.snippets.redis.flushdb()
 
     def test_set_snippet(self):
         key = self.snippets.set_snippet("Sample text", "Sample source", True, {"tag": "test"})
-        self.assertTrue(self.redis.exists(key))
+        self.assertTrue(self.snippets.redis.exists(key))
 
     def test_get_snippet(self):
         key = self.snippets.set_snippet("Sample text", "Sample source", True, {"tag": "test"})
@@ -43,7 +44,7 @@ class TestSnippets(unittest.TestCase):
         snippet_id = int(key.split(":")[1])
 
         self.snippets.remove_snippet(snippet_id)
-        self.assertFalse(self.redis.exists(key))
+        self.assertFalse(self.snippets.redis.exists(key))
 
     def test_remove_snippet_nonexistent(self):
         with self.assertRaises(KeyError):
