@@ -17,6 +17,8 @@ class InteractiveText:
         self.content = self._generate_content()
         self.legend = None
 
+        self.selected_tags = set()
+
     def _generate_content(self) -> ui.column:
         lines = self.snippet.text.split("\n")
 
@@ -107,16 +109,18 @@ class InteractiveText:
         return self.content
 
     async def increment_tagged_word_count(self, tag: str) -> None:
-        js = f"window.spotTheBot.increment('{tag}');"
-        count = await ui.run_javascript(js)
+        count = await ui.run_javascript(f"window.spotTheBot.increment('{tag}');")
+        self.selected_tags.add(tag)
 
         tag_legend = self.legend_tags.get(tag)
         if tag_legend is not None:
             tag_legend.set_visibility(count >= 1)
 
     async def decrement_tagged_word_count(self, tag: str) -> None:
-        js = f"window.spotTheBot.decrement('{tag}');"
-        count = await ui.run_javascript(js)
+        count = await ui.run_javascript(f"window.spotTheBot.decrement('{tag}');")
+        if count < 1:
+            self.selected_tags.remove(tag)
+
         tag_legend = self.legend_tags.get(tag)
         if tag_legend is not None:
             tag_legend.set_visibility(count >= 1)

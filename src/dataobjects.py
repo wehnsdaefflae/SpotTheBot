@@ -7,14 +7,6 @@ from typing import Callable
 
 
 @dataclasses.dataclass(frozen=True)
-class StateUpdate:
-    true_positives: int
-    true_negatives: int
-    false_positives: int
-    false_negatives: int
-
-
-@dataclasses.dataclass(frozen=True)
 class Face:
     shape: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
     ears: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
@@ -33,8 +25,8 @@ class Face:
 
 @dataclasses.dataclass(frozen=True)
 class State:
-    last_positives_rate: float = .5
-    last_negatives_rate: float = .5
+    precision: float = .5    # tp / (tp + fp), opposite: gullible fp / (tp + fp)
+    specificity: float = .5  # tn / (tn + fp), opposite: paranoid fp / (tn + fp)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -78,6 +70,8 @@ class ViewCallbacks:
     get_user: Callable[[str], User]
     create_user: Callable[[User], str]
     get_next_snippet: Callable[[User], Snippet]
+    update_user_state: Callable[[User, Field], None]
+    update_markers: Callable[[set[str], bool], None]
 
 
 @dataclasses.dataclass

@@ -4,45 +4,12 @@ import random
 from loguru import logger
 from nicegui import ui, Client
 
-from src.dataobjects import Snippet, ViewCallbacks
+from src.dataobjects import ViewCallbacks, Field
 from src.gui.elements.content_class import ContentPage
 from src.gui.elements.dialogs import persistent_dialog
 from src.gui.elements.frame import frame
 from src.gui.elements.interactive_text import InteractiveText
 from src.gui.tools import get_from_local_storage
-
-
-def _next_snippet(user_name: str | None = None) -> Snippet:
-    content = (
-        f"TEXT {random.randint(0, 100)}:\n"
-        f"\n"
-        f"Die ADF-RDA ist 1998 in der heutigen Form aus einer Fusion zwischen verschiedenen kleineren Parteien und der "
-        f"ADF mit dem traditionsreichen Rassemblement Démocratique Africain, RDA hervorgegangen, in dessen "
-        f"programmatischer Tradition sie sich bis heute sieht. Die ADF-RDA ist von der Wählerstärke her betrachtet "
-        f"eine der konstantesten Parteien Burkina Fasos. Bereits an den Parlamentswahlen vom 24. Mai 1992 und 11. Mai "
-        f"1997, welche von der ADF und dem RDA noch unabhängig voneinander bestritten wurden, kamen sie zusammen auf "
-        f"einen ähnlichen Wähleranteil von rund 13 %."
-    )
-    return Snippet(
-        source="Wikipedia",
-        text=content,
-        is_bot=False
-    )
-
-
-async def submit(user_name: str, snippet: Snippet, points: int) -> None:
-    # todo:
-    #  update user in database
-    #   recent snippets
-    #   state
-    #  update markers
-    #  give feedback
-    identity_file = await get_from_local_storage("identity_file")
-    if identity_file is not None and os.path.isfile(identity_file):
-        os.remove(identity_file)
-
-    await persistent_dialog(f"{user_name} assumed {snippet.db_id} as HUMAN with {points} points")
-    ui.open("/game")
 
 
 class GameContent(ContentPage):
@@ -103,8 +70,8 @@ class GameContent(ContentPage):
         if name_hash is None:
             ui.open("/")
 
-        user = self.callbacks.get_user(name_hash)
-        snippet = self.callbacks.get_next_snippet(user)
+        self.user = self.callbacks.get_user(name_hash)
+        snippet = self.callbacks.get_next_snippet(self.user)
 
         with frame() as _frame:
             interactive_text = InteractiveText(snippet)
@@ -122,9 +89,54 @@ class GameContent(ContentPage):
 
             submit_button = ui.button(
                 self.submit_human,
-                on_click=lambda: submit(name_hash, snippet, self.points)
+                on_click=lambda: self.submit(interactive_text, self.points)
             )
             submit_button.classes("w-full justify-center")
             self.init_javascript(f"c{submit_button.id}")
 
         self.timer = ui.timer(1, self.decrement_points)
+
+    async def submit(self, interactive_text: InteractiveText, points: int) -> None:
+        identity_file = await get_from_local_storage("identity_file")
+        if identity_file is not None and os.path.isfile(identity_file):
+            os.remove(identity_file)
+
+        correct = interactive_text.snippet.is_bot == (0 < len(interactive_text.selected_tags))
+        correct_str = "correctly" if correct else "incorrectly"
+
+        snippet_id = interactive_text.snippet.db_id
+        self.user.recent_snippet_ids.append(snippet_id)
+
+        if correct and interactive_text.snippet.is_bot:
+            # precise
+            state = Field.TRUE_POSITIVES
+
+        elif correct:
+            # specific
+            state = Field.TRUE_NEGATIVES
+
+        elif interactive_text.snippet.is_bot:
+            # gullible
+            state = Field.FALSE_NEGATIVES
+
+        else:
+            # paranoid
+            state = Field.FALSE_POSITIVES
+
+        self.callbacks.update_user_state(self.user, state)
+
+        tags = interactive_text.selected_tags
+        if len(tags) < 1:
+            await persistent_dialog(
+                f"{self.user.secret_name_hash} {correct_str.upper()} assumed {interactive_text.snippet.db_id} "
+                f"as HUMAN with {points} points"
+            )
+        else:
+            self.callbacks.update_markers(tags, correct)
+            await persistent_dialog(
+                f"{self.user.secret_name_hash} {correct_str.upper()} assumed {interactive_text.snippet.db_id} "
+                f"as BOT with {points} points "
+                f"because of {tags}"
+            )
+
+        ui.open("/game")

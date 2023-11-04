@@ -13,6 +13,8 @@ class Controller:
             self.model.users.get_user,
             self.model.users.create_user,
             self.model.snippets.get_next_snippet,
+            self.model.users.update_user_state,
+            self.model.markers.update_markers,
         )
 
         self.view.set_callbacks(view_callbacks)

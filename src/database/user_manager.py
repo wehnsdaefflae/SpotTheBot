@@ -10,7 +10,7 @@ from redis import Redis
 from loguru import logger
 from redis.client import Pipeline
 
-from src.dataobjects import StateUpdate, State, Friend, User, Face
+from src.dataobjects import State, Friend, User, Face, Field
 
 logger.add(sys.stderr, format="{time} {level} {message}", colorize=True, level="INFO")
 logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 MB", level="DEBUG")
@@ -46,8 +46,8 @@ class UserManager:
         self.redis.hset(user_key, mapping={
             "secret_name_hash": user.secret_name_hash,
             "face": json.dumps(user.face.to_tuple()),
-            "last_positives_rate": user.state.last_positives_rate,
-            "last_negatives_rate": user.state.last_negatives_rate,
+            "precision": user.state.precision,
+            "specificity": user.state.specificity,
             "invited_by_user_id": user.invited_by_user_id,
             "created_at": user.created_at,
             "recent_snippet_ids": json.dumps(list(user.recent_snippet_ids)),
@@ -161,25 +161,35 @@ class UserManager:
 
         self._reset_user_expiration(f"user:{user_id}")
 
-    def update_user_state(self, user_key: str, state_update: StateUpdate, minimum: int = 10) -> None:
-        # update_user_state('JohnDoe', StateUpdate(0, 0, 1, 0))
-        if state_update.true_positives + state_update.false_positives + state_update.true_negatives + state_update.false_negatives < minimum:
-            return
+    def update_user_state(self, user_key: str, field: Field, inertia: int = 10) -> None:
+        if field == Field.TRUE_POSITIVES:
+            precision = int(self.redis.hget(user_key, "precision") or 0.)
+            self.redis.hset(user_key, mapping={
+                "precision": (precision * inertia + 1.) / (inertia + 1.),
+            })
 
-        positives = state_update.true_positives + state_update.false_positives
-        if positives < 1:
-            return
-        positives_rate = state_update.true_positives / positives
+        elif field == Field.FALSE_POSITIVES:
+            precision = int(self.redis.hget(user_key, "precision") or 0.)
+            self.redis.hset(user_key, mapping={
+                "precision": (precision * inertia + 0.) / (inertia + 1.),
+            })
 
-        negatives = state_update.true_negatives + state_update.false_negatives
-        if negatives < 1:
-            return
-        negatives_rate = state_update.true_negatives / negatives
+        elif field == Field.TRUE_NEGATIVES:
+            specificity = int(self.redis.hget(user_key, "specificity") or 0.)
+            self.redis.hset(user_key, mapping={
+                "specificity": (specificity * inertia + 1.) / (inertia + 1.)
+            })
 
-        self.redis.hset(user_key, mapping={
-            "last_positives_rate": positives_rate,
-            "last_negatives_rate": negatives_rate
-        })
+        elif field == Field.FALSE_NEGATIVES:
+            specificity = int(self.redis.hget(user_key, "specificity") or 0.)
+            self.redis.hset(user_key, mapping={
+                "specificity": (specificity * inertia + 0.) / (inertia + 1.)
+            })
+
+        else:
+            raise ValueError(
+                "Field must be either true positives, false positives, true negatives, or false negatives."
+            )
 
         self._reset_user_expiration(user_key)
 
