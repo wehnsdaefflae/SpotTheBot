@@ -97,6 +97,8 @@ class StartContent(ContentPage):
                 title_label = ui.label("Look out for robots!")
                 title_label.classes("text-h4 font-bold text-grey-8")
 
+                ui.markdown("Consider the following hints:")
+
                 with ui.row():
                     with ui.column():
                         # most true positives among positives
