@@ -1,7 +1,7 @@
 import dataclasses
 import random
 import time
-from collections import deque
+from collections import deque, Counter
 from enum import Enum
 from typing import Callable
 
@@ -71,7 +71,9 @@ class ViewCallbacks:
     create_user: Callable[[User], str]
     get_next_snippet: Callable[[User], Snippet]
     update_user_state: Callable[[User, Field], None]
-    update_markers: Callable[[set[str], bool], None]
+    update_markers: Callable[[Counter, bool], None]
+    most_successful_markers: Callable[[int, int], set[tuple[str, float]]]
+    least_successful_markers: Callable[[int, int], set[tuple[str, float]]]
 
 
 @dataclasses.dataclass

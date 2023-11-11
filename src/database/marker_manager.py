@@ -1,4 +1,5 @@
 import sys
+from collections import Counter
 
 from redis import Redis
 from loguru import logger
@@ -34,12 +35,62 @@ class MarkerManager:
 
             logger.info(f"Evicted {len(markers_to_evict)} markers to maintain the max_markers limit.")
 
-    def update_markers(self, markers: set[str], correct: bool) -> None:
+    def get_most_successful_markers(self, n: int, min_count: int) -> set[tuple[str, float]]:
+        """
+        Returns a set of n tuples of the form (marker_name, success_ratio) containing
+        the markers most often successfully used to identify bots, along with their
+        respective success ratios. Only includes markers with at least min_count total uses.
+        """
+        # Fetch markers with at least min_count uses
+        qualified_markers = set(
+            marker.decode('utf-8')
+            for marker, _ in self.redis.zrangebyscore(
+                "total_count_sortedset", min_count, "+inf", withscores=True, start=0, num=n)
+        )
+
+        # Fetch top n markers based on success ratio
+        successful_markers = self.redis.zrevrangebyscore(
+            "correct_ratio_sortedset", 1, 0, withscores=True
+        )
+
+        # Filter to include only those with sufficient total uses
+        return {
+            (decoded, float(score))
+            for marker, score in successful_markers
+            if (decoded := marker.decode('utf-8')) in qualified_markers
+        }
+
+    def get_least_successful_markers(self, n: int, min_count: int) -> set[tuple[str, float]]:
+        """
+        Returns a set of n tuples of the form (marker_name, success_ratio) containing
+        the markers most often unsuccessfully used to identify bots, along with their
+        respective failure ratios. Only includes markers with at least min_count total uses.
+        """
+        # Fetch markers with at least min_count uses
+        qualified_markers = set(
+            marker.decode('utf-8')
+            for marker, _ in self.redis.zrangebyscore(
+                "total_count_sortedset", min_count, "+inf", withscores=True, start=0, num=n)
+        )
+
+        # Fetch bottom n markers based on success ratio
+        unsuccessful_markers = self.redis.zrangebyscore(
+            "correct_ratio_sortedset", 0, 1, withscores=True
+        )
+
+        # Filter to include only those with sufficient total uses
+        return {
+            (decoded, 1. - float(score))
+            for marker, score in unsuccessful_markers
+            if (decoded := marker.decode('utf-8')) in qualified_markers
+        }
+
+    def update_markers(self, markers: Counter, correct: bool) -> None:
         correct_int = int(correct)
         with self.redis.pipeline() as pipe:
-            for marker_name in markers:
+            for marker_name, marker_count in markers.items():
                 marker_key = f"marker:{marker_name}"
-                pipe.hincrby(marker_key, "total_count", 1)
+                pipe.hincrby(marker_key, "total_count", marker_count)
                 pipe.hincrby(marker_key, "correct", correct_int)
 
             counts = pipe.execute()
@@ -61,27 +112,3 @@ class MarkerManager:
     def get_markers_by_count(self, n: int) -> list[tuple[str, int]]:
         total_count_sortedset = self.redis.zrevrange("total_count_sortedset", 0, n - 1, withscores=True)
         return [(marker.decode('utf-8'), int(score)) for marker, score in total_count_sortedset]
-
-    def _rank_normalized(self, marker_scores: list[tuple[str, float]], minimal_count: int, n: int):
-        marker_list = list()
-        for marker, score in marker_scores:
-            marker_key = f"marker:{marker}"
-            total_count = int(self.redis.hget(marker_key, "total_count") or 0)
-            if total_count >= minimal_count:
-                normalized_score = score / total_count
-                marker_list.append((marker, normalized_score))
-
-            if len(marker_list) >= n:
-                return marker_list
-        return marker_list
-
-    def get_worst_markers(self, n: int, minimal_count: int = 10) -> list[tuple[str, float]]:
-        # Retrieve all markers and their scores
-        correct_ratio_sortedset = self.redis.zrange("correct_ratio_sortedset", 0, -1, withscores=True)
-        incorrect_markers = [(marker.decode('utf-8'), score) for marker, score in correct_ratio_sortedset]
-        return self._rank_normalized(incorrect_markers, minimal_count, n)
-
-    def get_best_markers(self, n: int, minimal_count: int = 10) -> list[tuple[str, float]]:
-        correct_count_sortedset = self.redis.zrevrange("correct_ratio_sortedset", 0, -1, withscores=True)
-        correct_markers = [(marker.decode('utf-8'), score) for marker, score in correct_count_sortedset]
-        return self._rank_normalized(correct_markers, minimal_count, n)

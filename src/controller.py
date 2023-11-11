@@ -15,6 +15,8 @@ class Controller:
             self.model.snippets.get_next_snippet,
             self.model.users.update_user_state,
             self.model.markers.update_markers,
+            self.model.markers.get_most_successful_markers,
+            self.model.markers.get_least_successful_markers,
         )
 
         self.view.set_callbacks(view_callbacks)

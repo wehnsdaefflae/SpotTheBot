@@ -1,4 +1,5 @@
 import re
+from collections import Counter
 from typing import Callable, Coroutine
 
 from nicegui import ui
@@ -17,7 +18,7 @@ class InteractiveText:
         self.content = self._generate_content()
         self.legend = None
 
-        self.selected_tags = set()
+        self.selected_tags = Counter()
 
     def _generate_content(self) -> ui.column:
         lines = self.snippet.text.split("\n")
@@ -110,7 +111,7 @@ class InteractiveText:
 
     async def increment_tagged_word_count(self, tag: str) -> None:
         count = await ui.run_javascript(f"window.spotTheBot.increment('{tag}');")
-        self.selected_tags.add(tag)
+        self.selected_tags[tag] += 1
 
         tag_legend = self.legend_tags.get(tag)
         if tag_legend is not None:
@@ -118,8 +119,12 @@ class InteractiveText:
 
     async def decrement_tagged_word_count(self, tag: str) -> None:
         count = await ui.run_javascript(f"window.spotTheBot.decrement('{tag}');")
-        if count < 1:
-            self.selected_tags.remove(tag)
+        count_local = self.selected_tags.get(tag)
+        if count_local is not None:
+            if 1 >= count_local:
+                del self.selected_tags[tag]
+            else:
+                self.selected_tags[tag] = count_local - 1
 
         tag_legend = self.legend_tags.get(tag)
         if tag_legend is not None:

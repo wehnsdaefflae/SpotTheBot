@@ -73,6 +73,9 @@ class GameContent(ContentPage):
         self.user = self.callbacks.get_user(name_hash)
         snippet = self.callbacks.get_next_snippet(self.user)
 
+        word_count = len(snippet.text.split())
+        self.points = word_count // 4
+
         with frame() as _frame:
             interactive_text = InteractiveText(snippet)
 
@@ -135,8 +138,7 @@ class GameContent(ContentPage):
             self.callbacks.update_markers(tags, correct)
             await persistent_dialog(
                 f"{self.user.secret_name_hash} {correct_str.upper()} assumed {interactive_text.snippet.db_id} "
-                f"as BOT with {points} points "
-                f"because of {tags}"
+                f"as BOT with {points} points because of {str(tags)}"
             )
 
         ui.open("/game")

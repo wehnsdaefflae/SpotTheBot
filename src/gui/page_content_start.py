@@ -99,18 +99,28 @@ class StartContent(ContentPage):
 
                 with ui.row():
                     with ui.column():
-                        ui.markdown("What robots sound like:")
                         # most true positives among positives
                         # Attributes most commonly and correctly identified by users as robot-like
-                        for i in range(4):
-                            each_indicator_label = ui.label(f"[indicator {i + 1}] [accuracy]")
+                        good_markers = sorted(
+                            self.callbacks.most_successful_markers(4, 10),
+                            key=lambda x: x[1], reverse=True
+                        )
+                        for i, (each_marker, each_score) in enumerate(good_markers):
+                            each_indicator_label = ui.markdown(
+                                f"{each_score:.0%} of AI texts sound ***{each_marker}***"
+                            )
 
                     with ui.column():
-                        ui.markdown("What humans **do not** sound like:")
                         # most false positives among negatives
                         # Attributes users most commonly mistake as robot-like in human-written text
-                        for i in range(4):
-                            each_indicator_label = ui.label(f"[indicator {i + 1}] [accuracy]")
+                        bad_markers = sorted(
+                            self.callbacks.least_successful_markers(4, 10),
+                            key=lambda x: x[1], reverse=True
+                        )
+                        for i, (each_marker, each_score) in enumerate(bad_markers):
+                            each_indicator_label = ui.markdown(
+                                f"{each_score:.0%} of human texts **don't** sound ***{each_marker}***"
+                            )
 
                 face_element = show_face(self.user.face)
 
