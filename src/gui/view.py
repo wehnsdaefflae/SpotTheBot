@@ -3,6 +3,7 @@ from nicegui import ui, Client
 
 from src.gui.dummies import DummyContent
 from src.dataobjects import ViewCallbacks
+from src.gui.page_content_friends import FriendsContent
 from src.gui.page_content_game import GameContent
 # from src.gui.page_content_about import about_content
 # from src.gui.page_content_friends import friends_content
@@ -30,10 +31,8 @@ class View:
 
         @ui.page("/friends")
         async def friends_page(client: Client) -> None:
-            friends_content = DummyContent(client, self.callbacks)
+            friends_content = FriendsContent(client, self.callbacks)
             await friends_content.create_content()
-
-            # friends_content(self)
 
         @ui.page("/results")
         async def results_page(client: Client) -> None:
@@ -48,3 +47,7 @@ class View:
             await about_content.create_content()
 
             # about_content(self)
+
+        @ui.page("/invitation/{invitation_id}")
+        def hand_in_invitation(client: Client, invitation_id: str) -> None:
+            ui.label(f"Invitation ID: {invitation_id}")

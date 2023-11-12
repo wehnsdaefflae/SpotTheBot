@@ -6,7 +6,7 @@ from nicegui import ui, Client
 
 from src.dataobjects import ViewCallbacks, Field
 from src.gui.elements.content_class import ContentPage
-from src.gui.elements.dialogs import persistent_dialog
+from src.gui.elements.dialogs import info_dialog, result_dialog
 from src.gui.elements.frame import frame
 from src.gui.elements.interactive_text import InteractiveText
 from src.gui.tools import get_from_local_storage
@@ -130,15 +130,18 @@ class GameContent(ContentPage):
 
         tags = interactive_text.selected_tags
         if len(tags) < 1:
-            await persistent_dialog(
+            selection = await result_dialog(
                 f"{self.user.secret_name_hash} {correct_str.upper()} assumed {interactive_text.snippet.db_id} "
                 f"as HUMAN with {points} points"
             )
         else:
             self.callbacks.update_markers(tags, correct)
-            await persistent_dialog(
+            selection = await result_dialog(
                 f"{self.user.secret_name_hash} {correct_str.upper()} assumed {interactive_text.snippet.db_id} "
                 f"as BOT with {points} points because of {str(tags)}"
             )
 
-        ui.open("/game")
+        if selection == "continue":
+            ui.open("/game")
+        else:
+            ui.open("/")

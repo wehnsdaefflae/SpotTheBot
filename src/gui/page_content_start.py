@@ -2,11 +2,11 @@
 import hashlib
 import random
 
-from nicegui import ui, app, Client
+from nicegui import ui, Client
 
 from src.dataobjects import User, ViewCallbacks
 from src.gui.elements.content_class import ContentPage
-from src.gui.elements.dialogs import persistent_dialog
+from src.gui.elements.dialogs import info_dialog
 from src.gui.elements.face import show_face
 from src.gui.tools import download_vcard, get_from_local_storage, set_in_local_storage
 from src.gui.elements.frame import frame
@@ -42,13 +42,13 @@ class StartContent(ContentPage):
             except KeyError as e:
                 # no user for hash in local storage
                 logger.error(e)
-                await persistent_dialog("Sorry, there's no user with that identity. Did you mistype?")
+                await info_dialog("Sorry, there's no user with that identity. Did you mistype?")
                 self.user = await self.make_user()
 
     async def start_game(self) -> None:
         if self.user.db_id < 0:
             self.callbacks.create_user(self.user)
-            await persistent_dialog("Keep the following file safe!")
+            await info_dialog("Keep the following file safe!")
             source_path, target_path = download_vcard(self.secret_name)
             ui.download(source_path, target_path)
             await set_in_local_storage("identity_file", source_path)
@@ -57,31 +57,6 @@ class StartContent(ContentPage):
             self.user = None
 
         ui.open("/game")
-
-    @staticmethod
-    async def invite() -> None:
-        with ui.dialog() as dialog, ui.card():
-            ui.label(f"What's their name?")
-            user_name = ui.input("name of friend")
-            user_name.on("change", lambda: dialog.submit(user_name.value))
-
-        friend_name = await dialog
-
-        if friend_name is None or len(friend_name) < 1:
-            # generate link without name
-            pass
-
-        name_hash = app.storage.user.get("name_hash", None)
-        if name_hash is None:
-            # just return app url
-            pass
-
-        with ui.dialog() as dialog, ui.card():
-            ui.label(f"Give this link to {friend_name} to add them to your friends:")
-            # use name hash and friend name to create a link
-            ui.label(f"spotthebot.app/invite?=3489fn5f247g25g")
-
-        dialog.open()
 
     def change_user(self, secret_identity: str) -> None:
         name_hash = hashlib.sha256(secret_identity.encode()).hexdigest()
@@ -131,7 +106,3 @@ class StartContent(ContentPage):
                 identity_input.on("change", lambda: self.change_user(identity_input.value))
 
                 button_start = ui.button("SPOT THE BOT", on_click=self.start_game)
-
-                ui.label(f"or")
-
-                invite_button = ui.button("Invite a friend", on_click=self.invite)

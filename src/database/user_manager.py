@@ -46,6 +46,7 @@ class UserManager:
         self.redis.hset(user_key, mapping={
             "secret_name_hash": user.secret_name_hash,
             "face": json.dumps(user.face.to_tuple()),
+            "friends": json.dumps([friend.db_id for friend in user.friends]),
             "precision": user.state.precision,
             "specificity": user.state.specificity,
             "invited_by_user_id": user.invited_by_user_id,
