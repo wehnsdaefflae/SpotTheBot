@@ -17,6 +17,8 @@ class Controller:
             self.model.markers.update_markers,
             self.model.markers.get_most_successful_markers,
             self.model.markers.get_least_successful_markers,
+            self.model.users.get_friends,
+            self.model.users.set_user_penalty
         )
 
         self.view.set_callbacks(view_callbacks)

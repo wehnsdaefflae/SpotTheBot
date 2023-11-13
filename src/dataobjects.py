@@ -33,18 +33,21 @@ class State:
 class Friend:
     db_id: int
     name: str
+    face: Face
 
 
 @dataclasses.dataclass(frozen=True)
 class User:
     secret_name_hash: str
+    public_name: str
+
+    penalty: bool = False
 
     face: Face = dataclasses.field(default_factory=Face)
-    friends: set[Friend] = dataclasses.field(default_factory=set)
     state: State = dataclasses.field(default_factory=State)
     db_id: int = -1
     invited_by_user_id: int = -1
-    created_at: float = dataclasses.field(default_factory=time.time)
+    created_at: int = dataclasses.field(default_factory=lambda: int(time.time()))
 
     recent_snippet_ids: deque[int] = dataclasses.field(default_factory=lambda: deque(maxlen=100))
 
@@ -67,13 +70,15 @@ class Field(Enum):
 
 @dataclasses.dataclass(frozen=True)
 class ViewCallbacks:
-    get_user: Callable[[str], User]
-    create_user: Callable[[User], str]
+    get_user: Callable[[str], User | None]
+    create_user: Callable[[str, Face, str, int], User]
     get_next_snippet: Callable[[User], Snippet]
-    update_user_state: Callable[[User, Field], None]
+    update_user_state: Callable[[User, bool, int, int], None]
     update_markers: Callable[[Counter, bool], None]
     most_successful_markers: Callable[[int, int], set[tuple[str, float]]]
     least_successful_markers: Callable[[int, int], set[tuple[str, float]]]
+    get_friends: Callable[[User], set[Friend]]
+    set_user_penalty: Callable[[User, bool], None]
 
 
 @dataclasses.dataclass

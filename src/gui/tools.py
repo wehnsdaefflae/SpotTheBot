@@ -13,17 +13,19 @@ def colorize(signs_dict: dict[str, int]) -> tuple[tuple[str, str], ...]:
     return tuple((each_sign, next(color_generator)) for each_sign in signs)
 
 
-def download_vcard(secret_name: str) -> tuple[str, str]:
+def download_vcard(secret_name: str, public_name: str) -> tuple[str, str]:
     ram_disk_path = "/dev/shm/"
     now = datetime.datetime.now()
+    photo_url = "https://pbs.twimg.com/media/FSRec5QXEAE5h_Z.png"
     on_mobile = True
     if on_mobile:
         with tempfile.NamedTemporaryFile(dir=ram_disk_path, mode="w", suffix=".vcf", delete=False) as file:
-            # with open("contact.vcf", mode="w") as file:
             file.write(f"BEGIN:VCARD\n")
             file.write(f"VERSION:3.0\n")
             file.write(f"N:{secret_name}\n")
             file.write(f"FN:{secret_name}\n")
+            file.write(f"NICKNAME:{public_name}\n")
+            file.write(f"PHOTO:{photo_url}\n")
             file.write(f"ORG:Spot The Bot\n")
             file.write(f"ROLE:Super Hero Private Detective\n")
             file.write(f"REV:{now.strftime('%Y%m%dT%H%M%SZ')}\n")

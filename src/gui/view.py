@@ -50,4 +50,6 @@ class View:
 
         @ui.page("/invitation/{invitation_id}")
         def hand_in_invitation(client: Client, invitation_id: str) -> None:
+            # 1. if not logged in: create user
+            # 2. add friend
             ui.label(f"Invitation ID: {invitation_id}")

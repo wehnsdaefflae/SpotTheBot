@@ -4,11 +4,11 @@ import random
 
 from nicegui import ui, Client
 
-from src.dataobjects import User, ViewCallbacks
+from src.dataobjects import ViewCallbacks, Face
 from src.gui.elements.content_class import ContentPage
-from src.gui.elements.dialogs import info_dialog
+from src.gui.elements.dialogs import info_dialog, input_dialog
 from src.gui.elements.face import show_face
-from src.gui.tools import download_vcard, get_from_local_storage, set_in_local_storage
+from src.gui.tools import download_vcard, get_from_local_storage, set_in_local_storage, remove_from_local_storage
 from src.gui.elements.frame import frame
 from src.tools.names import generate_name
 from loguru import logger
@@ -17,44 +17,41 @@ from loguru import logger
 class StartContent(ContentPage):
     def __init__(self, client: Client, callbacks: ViewCallbacks) -> None:
         super().__init__(client, callbacks)
-        self.secret_name = None
-        self.user = None
-
-    async def make_user(self) -> User:
-        name_seed = tuple(random.random() for _ in range(7))
-        self.secret_name = generate_name(name_seed)
-        name_hash = hashlib.sha256(self.secret_name.encode()).hexdigest()
-        return User(name_hash)
+        self.face = None
+        self.logged_in_user_name = None
 
     async def set_user(self) -> None:
-        await self.client.connected()
         name_hash = await get_from_local_storage("name_hash")
         if name_hash is None:
-            # no user yet
-            self.user = await self.make_user()
+            self.face = Face()
 
         else:
-            # user in local storage
-            try:
-                # user retrieved
-                self.user = self.callbacks.get_user(name_hash)
+            user = self.callbacks.get_user(name_hash)
+            if user is None:
+                msg = "Sorry, there's no user with that identity. Did you mistype?"
+                await remove_from_local_storage("name_hash")
 
-            except KeyError as e:
-                # no user for hash in local storage
-                logger.error(e)
-                await info_dialog("Sorry, there's no user with that identity. Did you mistype?")
-                self.user = await self.make_user()
+                logger.error(msg)
+                await info_dialog(msg)
 
-    async def start_game(self) -> None:
-        if self.user.db_id < 0:
-            self.callbacks.create_user(self.user)
-            await info_dialog("Keep the following file safe!")
-            source_path, target_path = download_vcard(self.secret_name)
+                self.face = Face()
+
+            else:
+                self.face = user.face
+                self.logged_in_user_name = user.public_name
+
+    async def _start_game(self) -> None:
+        if self.logged_in_user_name is None:
+            public_name = await input_dialog("Enter your name and keep the following file safe.")
+            name_seed = tuple(random.random() for _ in range(7))
+            secret_name = generate_name(name_seed)
+            invited_by_user_id = -1
+            user = self.callbacks.create_user(secret_name, self.face, public_name, invited_by_user_id)
+
+            source_path, target_path = download_vcard(secret_name, public_name)
             ui.download(source_path, target_path)
             await set_in_local_storage("identity_file", source_path)
-            await set_in_local_storage("name_hash", self.user.secret_name_hash)
-            self.secret_name = None
-            self.user = None
+            await set_in_local_storage("name_hash", user.secret_name_hash)
 
         ui.open("/game")
 
@@ -65,10 +62,17 @@ class StartContent(ContentPage):
 
     async def create_content(self) -> None:
         logger.info("Start page")
+        await self.client.connected()
+
         await self.set_user()
 
         with frame() as _frame:
             with ui.column() as column:
+                if self.logged_in_user_name is None:
+                    ui.label("Oh... a new face!")
+                else:
+                    ui.label(f"Welcome back, {self.logged_in_user_name}!")
+
                 title_label = ui.label("Look out for robots!")
                 title_label.classes("text-h4 font-bold text-grey-8")
 
@@ -99,10 +103,10 @@ class StartContent(ContentPage):
                                 f"{each_score:.0%} of human texts **don't** sound ***{each_marker}***"
                             )
 
-                face_element = show_face(self.user.face)
+                face_element = show_face(self.face)
 
                 ui.label("this isn't you?")
                 identity_input = ui.input("take on your secret identity")
                 identity_input.on("change", lambda: self.change_user(identity_input.value))
 
-                button_start = ui.button("SPOT THE BOT", on_click=self.start_game)
+                button_start = ui.button("SPOT THE BOT", on_click=self._start_game)

@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 import json
+import sys
 
 from nicegui import ui
 
 from src.controller import Controller
+
+from loguru import logger
+
+logger.add(sys.stderr, format="{time} {level} {message}", colorize=True, level="INFO")
+logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 MB", level="DEBUG")
 
 
 def main() -> None:

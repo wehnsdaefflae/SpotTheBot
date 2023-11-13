@@ -114,7 +114,6 @@ class TestUsers(unittest.TestCase):
         user = self.users.get_user(name_hash)
         user_id = user.db_id
 
-        self.users.set_user_progress(f"user:{user_id}", 1, 100, 200, 150)
 
         user_key: str = f"user:{user_id}"
         progress_key: str = f"{user_key}:progress"

@@ -1,19 +1,14 @@
 # coding=utf-8
+import hashlib
 import json
-import sys
 from collections import deque
-
-from loguru import logger
 
 from redis import Redis
 
 from loguru import logger
 from redis.client import Pipeline
 
-from src.dataobjects import State, Friend, User, Face, Field
-
-logger.add(sys.stderr, format="{time} {level} {message}", colorize=True, level="INFO")
-logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 MB", level="DEBUG")
+from src.dataobjects import State, Friend, User, Face
 
 
 class UserManager:
@@ -23,9 +18,6 @@ class UserManager:
 
         self.expiration_seconds = expiration_seconds
 
-        if not self.redis.exists("user_id_counter"):
-            self.redis.set("user_id_counter", 0)
-
     def _reset_user_expiration(self, user_key: str, name_hash_key: str | None = None) -> None:
         if name_hash_key is None:
             secret_name_hash = self.redis.hget(user_key, "secret_name_hash")
@@ -33,50 +25,52 @@ class UserManager:
 
         self.redis.expire(user_key, self.expiration_seconds)
         self.redis.expire(name_hash_key, self.expiration_seconds)
-        friends_key = f"{user_key}:friends"
-        self.redis.expire(friends_key, self.expiration_seconds)
 
-    def create_user(self, user: User) -> str:
-        name_hash_key = f"name_hash:{user.secret_name_hash}"
+    def create_user(self, secret_name: str, face: Face, public_name: str, invited_by_user_id: int) -> User:
+        secret_name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
+        name_hash_key = f"name_hash:{secret_name_hash}"
         if self.redis.exists(name_hash_key):
             raise ValueError("User already exists.")
 
-        user_id = self.redis.incr("user_id_counter")
+        user_id = int(self.redis.incr("user_id_counter"))
         user_key = f"user:{user_id}"
+        user = User(
+            secret_name_hash=secret_name_hash,
+            public_name=public_name,
+            face=face,
+            db_id=user_id,
+            invited_by_user_id=invited_by_user_id
+        )
         self.redis.hset(user_key, mapping={
-            "secret_name_hash": user.secret_name_hash,
-            "face": json.dumps(user.face.to_tuple()),
-            "friends": json.dumps([friend.db_id for friend in user.friends]),
-            "precision": user.state.precision,
-            "specificity": user.state.specificity,
-            "invited_by_user_id": user.invited_by_user_id,
-            "created_at": user.created_at,
-            "recent_snippet_ids": json.dumps(list(user.recent_snippet_ids)),
+            "secret_name_hash":     secret_name_hash,
+            "public_name":          public_name,
+            "penalty":              int(user.penalty),
+            "face":                 json.dumps(face.to_tuple()),
+            "precision":            user.state.precision,
+            "specificity":          user.state.specificity,
+            "db_id":                user_id,
+            "invited_by_user_id":   invited_by_user_id,
+            "created_at":           user.created_at,
+            "recent_snippet_ids":   json.dumps(list(user.recent_snippet_ids)),
         })
         self.redis.set(name_hash_key, user_id)
 
         # only friend of new user is invitee
-        if user.invited_by_user_id >= 0:
-            self.make_friends(user.invited_by_user_id, user_id)  # also initializes expiration
+        if invited_by_user_id >= 0:
+            self.make_friends(invited_by_user_id, user_id)  # also initializes expiration
 
         logger.info(f"Created user {user_id}.")
-        return user_key
+        return user
 
-    def get_user(self, secret_name_hash: str) -> User:
-        # user = get_user('JohnDoe')
-        # print(user)
-        # Outputs:
-        # User(secret_name_hash='JohnDoe', invited_by_user_id=243, created_at=1626374367.0, last_positives_rate=0.5,
-        # last_negatives_rate=0.5, friends={482, 268})
-
+    def get_user(self, secret_name_hash: str) -> User | None:
         name_hash_key = f"name_hash:{secret_name_hash}"
         if not self.redis.exists(name_hash_key):
-            raise KeyError(f"User with name hash {secret_name_hash} does not exist.")
+            return None
 
         user_id = int(self.redis.get(name_hash_key))
         user_key = f"user:{user_id}"
         if not self.redis.exists(user_key):
-            raise KeyError(f"User {user_id} does not exist.")
+            return None
 
         result = self.redis.hgetall(user_key)
         data = {
@@ -84,31 +78,22 @@ class UserManager:
             for key, value in result.items()
         }
 
-        friends = self.get_friends(user_id)
         state = State(data.pop("precision"), data.pop("specificity"))
         face_tuple = json.loads(data.pop("face"))
         face = Face(*face_tuple)
         recent_snippet_ids = json.loads(data.pop("recent_snippet_ids"))
-        return User(
+        user = User(
             secret_name_hash=data.pop("secret_name_hash"),
+            public_name=data.pop("public_name"),
+            penalty=bool(int(data.pop("penalty"))),
             face=face,
-            friends=friends,
             state=state,
             db_id=user_id,
             invited_by_user_id=data.pop("invited_by_user_id"),
             created_at=data.pop("created_at"),
             recent_snippet_ids=deque(recent_snippet_ids)
         )
-
-    def get_friend(self, friend_id: int) -> Friend:
-        # friend = get_friend(345980)
-        # print(friend)  # Outputs: Friend(db_id=345980, name='JohnDoe')
-        user_key = f"user:{friend_id}"
-        if not self.redis.exists(user_key):
-            raise KeyError(f"User {friend_id} does not exist.")
-
-        public_name = self.redis.hget(user_key, "public_name")
-        return Friend(friend_id, str(public_name))
+        return user
 
     def delete_user(self, user_id: int) -> None:
         # delete_user(243)
@@ -116,16 +101,21 @@ class UserManager:
         if not self.redis.exists(user_key):
             raise KeyError(f"User {user_id} does not exist.")
 
-        friends = self.get_friends(user_id)
+        secret_name_hash = self.redis.hget(user_key, "secret_name_hash")
+        name_hash_key = f"name_hash:{secret_name_hash}"
+        if not self.redis.exists(name_hash_key):
+            raise KeyError(f"User with name hash {secret_name_hash} does not exist.")
+
+        friend_ids = json.loads(self.redis.hget(user_key, "friends"))
+
         with self.redis.pipeline() as pipe:
-            for each_friend in friends:
-                self._remove_friend_unidirectional(each_friend.db_id, user_id, pipeline=pipe)
+            for each_friend_id in friend_ids:
+                self._remove_friend_unidirectional(each_friend_id, user_id, pipeline=pipe)
             pipe.execute()
 
         secret_name_hash = self.redis.hget(user_key, "secret_name_hash")
 
         self.redis.srem("user_name_hashes", secret_name_hash)
-        self.redis.delete(f"{user_key}:progress")
         self.redis.delete(user_key)
 
     def make_friends(self, user_id: int, friend_id: int) -> None:
@@ -162,60 +152,74 @@ class UserManager:
 
         self._reset_user_expiration(f"user:{user_id}")
 
-    def update_user_state(self, user: User, field: Field, inertia: int = 10) -> None:
-        user_key = f"user:{user.db_id}"
+    def get_friends(self, user: User) -> set[Friend]:
+        user_id = user.db_id
 
-        if field == Field.TRUE_POSITIVES:
-            precision = float(self.redis.hget(user_key, "precision") or 0.)
-            self.redis.hset(user_key, mapping={
-                "precision": (precision * inertia + 1.) / (inertia + 1.),
-            })
-
-        elif field == Field.FALSE_POSITIVES:
-            precision = float(self.redis.hget(user_key, "precision") or 0.)
-            self.redis.hset(user_key, mapping={
-                "precision": (precision * inertia + 0.) / (inertia + 1.),
-            })
-
-        elif field == Field.TRUE_NEGATIVES:
-            specificity = float(self.redis.hget(user_key, "specificity") or 0.)
-            self.redis.hset(user_key, mapping={
-                "specificity": (specificity * inertia + 1.) / (inertia + 1.)
-            })
-
-        elif field == Field.FALSE_NEGATIVES:
-            specificity = float(self.redis.hget(user_key, "specificity") or 0.)
-            self.redis.hset(user_key, mapping={
-                "specificity": (specificity * inertia + 0.) / (inertia + 1.)
-            })
-
-        else:
-            raise ValueError(
-                "Field must be either true positives, false positives, true negatives, or false negatives."
-            )
-
-        self._reset_user_expiration(user_key)
-
-    def get_friends(self, user_id: int) -> set[Friend]:
-        # friends = get_friends(345980)
-        # print(friends)  # Outputs: {482, 268}
-        user_key = f"user:{user_id}"
-        users_friends_key = f"{user_key}:friends"
-
+        users_friends_key = f"user:{user_id}:friends"
         friends = set()
-        for friend_id_byte in self.redis.smembers(users_friends_key):
-            each_friend = self.get_friend(int(friend_id_byte))
+        if not self.redis.exists(users_friends_key):
+            return friends
+
+        friend_ids = self.redis.smembers(users_friends_key)
+        for each_friend_id in friend_ids:
+            friend_key = f"user:{each_friend_id}"
+            if not self.redis.exists(friend_key):
+                raise KeyError(f"User {each_friend_id} does not exist.")
+
+            each_friend = Friend(
+                db_id=int(each_friend_id),
+                name=self.redis.hget(friend_key, "public_name"),
+                face=Face(*json.loads(self.redis.hget(friend_key, "face")))
+            )
             friends.add(each_friend)
 
         return friends
 
-    def set_user_progress(self, user_key: str, current_seed: int, from_snippet_id: int, to_snippet_id: int, current_index: int) -> None:
-        progress_key = f"{user_key}:progress"
-        self.redis.hset(progress_key, mapping={
-            "current_seed": current_seed,
-            "from_snippet_id": from_snippet_id,
-            "to_snippet_id": to_snippet_id,
-            "current_index": current_index
+    def set_user_penalty(self, user: User, penalty: bool) -> None:
+        user_key = f"user:{user.db_id}"
+        self.redis.hset(user_key, mapping={
+            "penalty": int(penalty)
+        })
+
+        self._reset_user_expiration(user_key)
+
+    def update_user_state(self, user: User, is_positive: bool, how_true: int, max_value: int) -> None:
+        user_key = f"user:{user.db_id}"
+
+        if is_positive and how_true >= 0:
+            precision = float(self.redis.hget(user_key, "precision") or 0.)
+            logger.debug(f"precision = (precision * (max_value - how_true) + (1. * how_true)) / max_value")
+            logger.debug(f"precision = ({precision} * ({max_value} - {how_true}) + (1. * {how_true})) / {max_value}")
+            self.redis.hset(user_key, mapping={
+                "precision": (precision * (max_value - how_true) + (1. * how_true)) / max_value,
+            })
+
+        elif is_positive and how_true < 0:
+            precision = float(self.redis.hget(user_key, "precision") or 0.)
+            logger.debug(f"precision = (precision * (max_value + how_true)) / max_value")
+            logger.debug(f"precision = ({precision} * ({max_value} + {how_true})) / {max_value}")
+            self.redis.hset(user_key, mapping={
+                "precision": (precision * (max_value + how_true)) / max_value,
+            })
+
+        elif not is_positive and how_true >= 0:
+            specificity = float(self.redis.hget(user_key, "specificity") or 0.)
+            logger.debug(f"specificity = (specificity * (max_value - how_true) + (1. * how_true)) / max_value")
+            logger.debug(f"specificity = ({specificity} * ({max_value} - {how_true}) + (1. * {how_true})) / {max_value}")
+            self.redis.hset(user_key, mapping={
+                "specificity": (specificity * (max_value - how_true) + (1. * how_true)) / max_value
+            })
+
+        elif not is_positive and how_true < 0:
+            specificity = float(self.redis.hget(user_key, "specificity") or 0.)
+            logger.debug(f"specificity = (specificity * (max_value + how_true)) / max_value")
+            logger.debug(f"specificity = ({specificity} * ({max_value} + {how_true})) / {max_value}")
+            self.redis.hset(user_key, mapping={
+                "specificity": (specificity * (max_value + how_true)) / max_value
+            })
+
+        self.redis.hset(user_key, mapping={
+            "penalty": 0
         })
 
         self._reset_user_expiration(user_key)

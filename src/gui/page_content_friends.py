@@ -14,26 +14,17 @@ class FriendsContent(ContentPage):
         self.user = None
 
     @staticmethod
-    async def invite() -> None:
-        with ui.dialog() as dialog, ui.card():
-            ui.label(f"What's their name?")
-            user_name = ui.input("name of friend")
-            user_name.on("change", lambda: dialog.submit(user_name.value))
-
-        friend_name = await dialog
-        if friend_name is None or len(friend_name) < 1:
-            # abort
-            return
-
+    async def _invite() -> None:
         name_hash = app.storage.user.get("name_hash", None)
         if name_hash is None:
-            # just return app url
-            pass
+            link = "spotthebot.app"
+        else:
+            link = "spotthebot.app/invitation/3489fn5f247g25g"
 
         with ui.dialog() as dialog, ui.card():
-            ui.label(f"Give this link to {friend_name} to add them to your friends:")
+            ui.label(f"Give them this link:")
             # use name hash and friend name to create a link
-            ui.label(f"spotthebot.app/invitation/3489fn5f247g25g")
+            ui.label(link)
 
         dialog.open()
 
@@ -49,11 +40,16 @@ class FriendsContent(ContentPage):
             ui.open("/")
 
         self.user = self.callbacks.get_user(name_hash)
+        if self.user is None:
+            ui.open("/")
 
         with frame():
             ui.label("Dummy content")
-            for each_friend in self.user.friends:
-                ui.label(each_friend.name)
+            with ui.column():
+                for each_friend in self.callbacks.get_friends(self.user):
+                    with ui.row():
+                        ui.label(each_friend.name)
+                        ui.button("Remove", on_click=lambda: None)
 
-            invite_button = ui.button("Invite a friend", on_click=self.invite)
+            invite_button = ui.button("Invite a friend", on_click=self._invite)
 
