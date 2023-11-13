@@ -18,7 +18,11 @@ class Controller:
             self.model.markers.get_most_successful_markers,
             self.model.markers.get_least_successful_markers,
             self.model.users.get_friends,
-            self.model.users.set_user_penalty
+            self.model.users.set_user_penalty,
+            self.model.invitations.create_invitation_hash,
+            self.model.invitations.get_invitee_id,
+            self.model.users.make_friends,
+            self.model.users.remove_friendship
         )
 
         self.view.set_callbacks(view_callbacks)

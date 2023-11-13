@@ -1,3 +1,4 @@
+from src.database.invitation_manager import InvitationManager
 from src.database.marker_manager import MarkerManager
 from src.database.snippet_manager import SnippetManager
 from src.database.user_manager import UserManager
@@ -8,7 +9,9 @@ class Model:
         users_db_config = redis_config.pop("users_database")
         snippets_db_config = redis_config.pop("snippets_database")
         markers_db_config = redis_config.pop("markers_database")
+        invitations_db_config = redis_config.pop("invitations_database")
 
         self.users = UserManager(users_db_config)
         self.snippets = SnippetManager(snippets_db_config)
         self.markers = MarkerManager(markers_db_config, max_markers=100)
+        self.invitations = InvitationManager(invitations_db_config)

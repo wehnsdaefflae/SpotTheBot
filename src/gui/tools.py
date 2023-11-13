@@ -1,10 +1,28 @@
 import datetime
+import string
 import tempfile
 
 from loguru import logger
 from nicegui import ui
 
 from src.tools.misc import hex_color_segmentation
+
+
+def int_to_base36(num: int) -> str:
+    num = abs(num)
+    if num == 0:
+        return '0'
+
+    symbols = string.digits + string.ascii_lowercase
+    len_symbols = len(symbols)
+    result = ""
+
+    while 0 < num:
+        remainder = num % len_symbols
+        result = symbols[remainder] + result
+        num //= len_symbols
+
+    return result
 
 
 def colorize(signs_dict: dict[str, int]) -> tuple[tuple[str, str], ...]:

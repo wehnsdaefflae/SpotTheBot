@@ -162,9 +162,9 @@ class UserManager:
 
         friend_ids = self.redis.smembers(users_friends_key)
         for each_friend_id in friend_ids:
-            friend_key = f"user:{each_friend_id}"
+            friend_key = f"user:{each_friend_id.decode()}"
             if not self.redis.exists(friend_key):
-                raise KeyError(f"User {each_friend_id} does not exist.")
+                raise KeyError(f"User {friend_key} does not exist.")
 
             each_friend = Friend(
                 db_id=int(each_friend_id),

@@ -19,6 +19,7 @@ class StartContent(ContentPage):
         super().__init__(client, callbacks)
         self.face = None
         self.logged_in_user_name = None
+        self.invited_by_id = None
 
     async def set_user(self) -> None:
         name_hash = await get_from_local_storage("name_hash")
@@ -47,6 +48,9 @@ class StartContent(ContentPage):
             secret_name = generate_name(name_seed)
             invited_by_user_id = -1
             user = self.callbacks.create_user(secret_name, self.face, public_name, invited_by_user_id)
+
+            if self.invited_by_id is not None:
+                self.callbacks.make_friends(user.db_id, self.invited_by_id)
 
             source_path, target_path = download_vcard(secret_name, public_name)
             ui.download(source_path, target_path)

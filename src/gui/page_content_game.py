@@ -81,26 +81,25 @@ class GameContent(ContentPage):
         word_count = len(snippet.text.split())
         self.max_points = self.points = word_count // 4
 
-        with frame() as _frame:
-            interactive_text = InteractiveText(snippet)
+        interactive_text = InteractiveText(snippet)
 
-            with ui.column() as column:
-                text_display = interactive_text.get_content()
+        with ui.column() as column:
+            text_display = interactive_text.get_content()
 
-                self.text_points = ui.markdown(f"{self.points} points remaining")
+            self.text_points = ui.markdown(f"{self.points} points remaining")
 
-                with ui.row() as row:
-                    # retrieve stats
-                    text_paranoid = ui.markdown("paranoid")
-                    element_diagram = ui.element()
-                    text_gullible = ui.markdown("gullible")
+            with ui.row() as row:
+                # retrieve stats
+                text_paranoid = ui.markdown("paranoid")
+                element_diagram = ui.element()
+                text_gullible = ui.markdown("gullible")
 
-            submit_button = ui.button(
-                self.submit_human,
-                on_click=lambda: self.submit(interactive_text, self.points, penalize)
-            )
-            submit_button.classes("w-full justify-center")
-            self.init_javascript(f"c{submit_button.id}")
+        submit_button = ui.button(
+            self.submit_human,
+            on_click=lambda: self.submit(interactive_text, self.points, penalize)
+        )
+        submit_button.classes("w-full justify-center")
+        self.init_javascript(f"c{submit_button.id}")
 
         self.timer = ui.timer(1, self.decrement_points)
 

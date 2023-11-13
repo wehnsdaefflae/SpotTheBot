@@ -13,13 +13,13 @@ class FriendsContent(ContentPage):
         super().__init__(client, callbacks)
         self.user = None
 
-    @staticmethod
-    async def _invite() -> None:
-        name_hash = app.storage.user.get("name_hash", None)
+    async def _invite(self) -> None:
+        name_hash = await get_from_local_storage("name_hash")
         if name_hash is None:
             link = "spotthebot.app"
         else:
-            link = "spotthebot.app/invitation/3489fn5f247g25g"
+            invitation_hash = self.callbacks.create_invitation(self.user)
+            link = f"spotthebot.app/invitation?value={invitation_hash}"
 
         with ui.dialog() as dialog, ui.card():
             ui.label(f"Give them this link:")
@@ -27,6 +27,20 @@ class FriendsContent(ContentPage):
             ui.label(link)
 
         dialog.open()
+
+    async def confirm_end_friendship(self, friend_id: int) -> None:
+        with ui.dialog() as dialog, ui.card():
+            ui.label("Are you sure you want to end this friendship?")
+            ui.button("Yes", on_click=lambda: dialog.submit("yes"))
+            ui.button("No", on_click=lambda: dialog.submit("no"))
+
+        result = await dialog
+        if result == "yes":
+            logger.info("Ending friendship")
+            self.callbacks.remove_friendship(self.user.db_id, friend_id)
+            ui.open("/friends")
+        else:
+            logger.info("Not ending friendship")
 
     async def create_content(self) -> None:
         logger.info("Game page")
@@ -46,10 +60,15 @@ class FriendsContent(ContentPage):
         with frame():
             ui.label("Dummy content")
             with ui.column():
-                for each_friend in self.callbacks.get_friends(self.user):
+                friends = self.callbacks.get_friends(self.user)
+                for each_friend in friends:
                     with ui.row():
-                        ui.label(each_friend.name)
-                        ui.button("Remove", on_click=lambda: None)
+                        ui.markdown(f"***{each_friend.name.decode()}***")
+                        ui.label(str(each_friend.face))
+                        ui.button(
+                            "Remove",
+                            on_click=lambda friend_id=each_friend.db_id: self.confirm_end_friendship(friend_id)
+                        )
 
             invite_button = ui.button("Invite a friend", on_click=self._invite)
 
