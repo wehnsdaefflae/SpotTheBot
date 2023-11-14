@@ -22,7 +22,9 @@ class Controller:
             self.model.invitations.create_invitation_hash,
             self.model.invitations.get_invitee_id,
             self.model.users.make_friends,
-            self.model.users.remove_friendship
+            self.model.users.remove_friendship,
+            self.model.users.get_user_by_id,
+            self.model.invitations.remove_invitation_link
         )
 
         self.view.set_callbacks(view_callbacks)

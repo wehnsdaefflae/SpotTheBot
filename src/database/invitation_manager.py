@@ -6,7 +6,7 @@ from src.gui.tools import int_to_base36
 
 
 class InvitationManager:
-    def __init__(self, redis_conf: dict[str, str], expiration_seconds: int = 60 * 60 * 24 * 7 * 30 * 6) -> None:
+    def __init__(self, redis_conf: dict[str, str], expiration_seconds: int = 60 * 60 * 24 * 7 * 4) -> None:
         self.redis = Redis(**redis_conf)
         logger.info("Invitations initialized.")
 

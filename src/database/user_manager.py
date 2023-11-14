@@ -12,7 +12,7 @@ from src.dataobjects import State, Friend, User, Face
 
 
 class UserManager:
-    def __init__(self, redis_conf: dict[str, str], expiration_seconds: int = 60 * 60 * 24 * 7 * 30 * 6) -> None:
+    def __init__(self, redis_conf: dict[str, str], expiration_seconds: int = 60 * 60 * 24 * 7 * 4 * 6) -> None:
         self.redis = Redis(**redis_conf)
         logger.info("Users initialized.")
 
@@ -62,12 +62,7 @@ class UserManager:
         logger.info(f"Created user {user_id}.")
         return user
 
-    def get_user(self, secret_name_hash: str) -> User | None:
-        name_hash_key = f"name_hash:{secret_name_hash}"
-        if not self.redis.exists(name_hash_key):
-            return None
-
-        user_id = int(self.redis.get(name_hash_key))
+    def get_user_by_id(self, user_id: int) -> User | None:
         user_key = f"user:{user_id}"
         if not self.redis.exists(user_key):
             return None
@@ -94,6 +89,15 @@ class UserManager:
             recent_snippet_ids=deque(recent_snippet_ids)
         )
         return user
+
+    def get_user(self, secret_name_hash: str) -> User | None:
+        name_hash_key = f"name_hash:{secret_name_hash}"
+        if not self.redis.exists(name_hash_key):
+            return None
+
+        user_id = int(self.redis.get(name_hash_key))
+        return self.get_user_by_id(user_id)
+
 
     def delete_user(self, user_id: int) -> None:
         # delete_user(243)

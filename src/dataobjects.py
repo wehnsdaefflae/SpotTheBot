@@ -83,6 +83,8 @@ class ViewCallbacks:
     get_invitee_id: Callable[[str], int]
     make_friends: Callable[[int, int], None]
     remove_friendship: Callable[[int, int], None]
+    get_user_by_id: Callable[[int], User | None]
+    remove_invitation_link: Callable[[str], None]
 
 
 @dataclasses.dataclass

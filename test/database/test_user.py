@@ -1,12 +1,10 @@
-import time
-from collections import deque
 import json
 import unittest
 
 from loguru import logger
 
 from src.database.user_manager import UserManager
-from src.dataobjects import Face, User, State
+from src.dataobjects import Face
 
 
 class TestUsers(unittest.TestCase):

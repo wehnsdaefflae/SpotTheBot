@@ -73,7 +73,12 @@ class StartContent(ContentPage):
         with frame() as _frame:
             with ui.column() as column:
                 if self.logged_in_user_name is None:
-                    ui.label("Oh... a new face!")
+                    if self.invited_by_id is None:
+                        invited = ""
+                    else:
+                        invitee = self.callbacks.get_user_by_id(self.invited_by_id)
+                        invited = f" {invitee.public_name} invited"
+                    ui.label(f"Oh...{invited} a new face!")
                 else:
                     ui.label(f"Welcome back, {self.logged_in_user_name}!")
 

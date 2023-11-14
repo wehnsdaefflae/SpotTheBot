@@ -49,6 +49,7 @@ class View:
             if command == "invitation":
                 invitation_hash = value
                 invitee_id = self.callbacks.get_invitee_id(invitation_hash)
+                self.callbacks.remove_invitation_link(invitation_hash)
                 start_content.invited_by_id = invitee_id
 
             await start_content.create_content()
