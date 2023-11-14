@@ -77,7 +77,7 @@ class ViewCallbacks:
     update_markers: Callable[[Counter, bool], None]
     most_successful_markers: Callable[[int, int], set[tuple[str, float]]]
     least_successful_markers: Callable[[int, int], set[tuple[str, float]]]
-    get_friends: Callable[[User], set[Friend]]
+    get_friends: Callable[[int], set[Friend]]
     set_user_penalty: Callable[[User, bool], None]
     create_invitation: Callable[[User], str]
     get_invitee_id: Callable[[str], int]

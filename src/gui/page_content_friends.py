@@ -60,7 +60,7 @@ class FriendsContent(ContentPage):
         with frame():
             ui.label("Dummy content")
             with ui.column():
-                friends = self.callbacks.get_friends(self.user)
+                friends = self.callbacks.get_friends(self.user.db_id)
                 for each_friend in friends:
                     with ui.row():
                         ui.markdown(f"***{each_friend.name.decode()}***")

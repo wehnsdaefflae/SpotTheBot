@@ -4,6 +4,8 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/venv" />
       <excludeFolder url="file://$MODULE_DIR$/databases" />
+      <excludeFolder url="file://$MODULE_DIR$/src/logs" />
+      <excludeFolder url="file://$MODULE_DIR$/test/database/logs" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.11 (SpotTheBot)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

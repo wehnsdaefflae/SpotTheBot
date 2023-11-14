@@ -1,12 +1,12 @@
-import hashlib
+import time
+from collections import deque
 import json
 import unittest
-from typing import Tuple
 
 from loguru import logger
 
 from src.database.user_manager import UserManager
-from src.dataobjects import StateUpdate, User
+from src.dataobjects import Face, User, State
 
 
 class TestUsers(unittest.TestCase):
@@ -30,102 +30,129 @@ class TestUsers(unittest.TestCase):
         self.redis.flushdb()
         self.redis.close()
 
-    def create_two_users(self) -> Tuple[int, int]:
-        user_a = User("Jane Doe")
-        user_b = User("John Doe")
+    def test_create_user(self):
+        secret_name = "testuser"
+        face = Face()
+        public_name = "Test User"
+        invited_by_user_id = 1
 
-        secret_name_user = self.users.create_user(user_a)
-        secret_name_friend = self.users.create_user(user_b)
+        user = self.users.create_user(secret_name, face, public_name, invited_by_user_id)
 
-        name_hash_user = hashlib.sha256(secret_name_user.encode()).hexdigest()
-        name_hash_friend = hashlib.sha256(secret_name_friend.encode()).hexdigest()
+        self.assertIsNotNone(user)
+        self.assertEqual(user.public_name, public_name)
+        self.assertEqual(user.invited_by_user_id, invited_by_user_id)
+        self.assertEqual(user.face, face)
 
-        user = self.users.get_user(name_hash_user)
-        friend = self.users.get_user(name_hash_friend)
+    def test_get_user(self):
+        user = self.users.create_user("testuser", Face(), "Test User", -1)
+        secret_name_hash = user.secret_name_hash
 
+        retrieved_user = self.users.get_user(secret_name_hash)
+
+        self.assertIsNotNone(retrieved_user)
+        self.assertEqual(retrieved_user.db_id, user.db_id)
+        self.assertEqual(retrieved_user.public_name, "Test User")
+
+    def test_delete_user(self):
+        user = self.users.create_user("testuser", Face(), "Test User", -1)
+
+        self.users.delete_user(user.db_id)
+
+        self.assertFalse(self.redis.exists(f"user:{user.db_id}"))
+        self.assertFalse(self.redis.exists(f"name_hash:{user.secret_name_hash}"))
+
+    def test_make_friends(self):
+        user_1 = self.users.create_user("testuser1", Face(), "Test User 1", -1)
+        user_id_1 = user_1.db_id
+        user_2 = self.users.create_user("testuser2", Face(), "Test User 2", -1)
+        user_id_2 = user_2.db_id
+
+        self.users.make_friends(user_id_1, user_id_2)
+
+        friends_of_user_1 = self.redis.smembers(f"user:{user_id_1}:friends")
+        friends_of_user_2 = self.redis.smembers(f"user:{user_id_2}:friends")
+
+        self.assertIn(str(user_id_2).encode(), friends_of_user_1)
+        self.assertIn(str(user_id_1).encode(), friends_of_user_2)
+
+    def test_remove_friendship(self):
+        user_1 = self.users.create_user("testuser1", Face(), "Test User 1", -1)
+        user_id_1 = user_1.db_id
+        user_2 = self.users.create_user("testuser2", Face(), "Test User 2", -1)
+        user_id_2 = user_2.db_id
+
+        self.users.make_friends(user_id_1, user_id_2)
+        self.users.remove_friendship(user_id_1, user_id_2)
+
+        friends_of_user_1 = self.redis.smembers(f"user:{user_id_1}:friends")
+        friends_of_user_2 = self.redis.smembers(f"user:{user_id_2}:friends")
+
+        self.assertNotIn(str(user_id_2).encode(), friends_of_user_1)
+        self.assertNotIn(str(user_id_1).encode(), friends_of_user_2)
+
+    def test_get_friends(self):
+        user = self.users.create_user("testuser1", Face(), "Test User 1", -1)
         user_id = user.db_id
+        friend = self.users.create_user("testuser2", Face(), "Test User 2", -1)
         friend_id = friend.db_id
 
-        return user_id, friend_id
-
-    def test_create_user(self) -> None:
-        user = User("John Doe")
-        secret_name = self.users.create_user(user)
-        name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
-        user = self.users.get_user(name_hash)
-        self.assertEqual(user.secret_name_hash, name_hash)
-
-    def test_delete_user(self) -> None:
-        user = User("John Doe")
-        secret_name = self.users.create_user(user)
-        name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
-        user = self.users.get_user(name_hash)
-        user_id = user.db_id
-        self.users.delete_user(user_id)
-
-        user_key = f"user:{user_id}"
-        self.assertFalse(self.redis.exists(user_key))
-
-    def test_make_friends(self) -> None:
-        user_id, friend_id = self.create_two_users()
-
         self.users.make_friends(user_id, friend_id)
 
-        self.assertTrue(friend_id in {each_friend.db_id for each_friend in self.users.get_friends(user_id)})
-        self.assertTrue(user_id in {each_friend.db_id for each_friend in self.users.get_friends(friend_id)})
-
-    def test_remove_friendship(self) -> None:
-        user_id, friend_id = self.create_two_users()
-
-        self.users.make_friends(user_id, friend_id)
-        self.users.remove_friendship(user_id, friend_id)
-
-        self.assertFalse(friend_id in {each_friend.db_id for each_friend in self.users.get_friends(user_id)})
-        self.assertFalse(user_id in {each_friend.db_id for each_friend in self.users.get_friends(friend_id)})
-
-    def test_update_user_state(self) -> None:
-        user = User("John Doe")
-        secret_name = self.users.create_user(user)
-        name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
-        user = self.users.get_user(name_hash)
-        user_id = user.db_id
-
-        state_update = StateUpdate(10, 10, 5, 5)
-        user_key = f"user:{user_id}"
-        self.users.update_user_state(user_key, state_update)
-
-        last_positives_rate = float(self.redis.hget(user_key, "last_positives_rate"))
-        last_negatives_rate = float(self.redis.hget(user_key, "last_negatives_rate"))
-
-        self.assertEqual(last_positives_rate, 0.6666666666666666)
-        self.assertEqual(last_negatives_rate, 0.6666666666666666)
-
-    def test_get_friends(self) -> None:
-        user_id, friend_id = self.create_two_users()
-
-        self.users.make_friends(user_id, friend_id)
         friends = self.users.get_friends(user_id)
-        self.assertTrue(friend_id in {each_friend.db_id for each_friend in friends})
+        self.assertEqual(len(friends), 1)
+        friend, = friends
+        self.assertEqual(friend.db_id, friend_id)
 
-    def test_set_user_progress(self) -> None:
-        user = User("John Doe")
-        secret_name = self.users.create_user(user)
-        name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
-        user = self.users.get_user(name_hash)
-        user_id = user.db_id
+        friends = self.users.get_friends(friend_id)
+        self.assertEqual(len(friends), 1)
+        friend, = friends
+        self.assertEqual(friend.db_id, user_id)
 
+    def test_set_user_penalty(self):
+        user = self.users.create_user("testuser1", Face(), "Test User 1", -1)
 
-        user_key: str = f"user:{user_id}"
-        progress_key: str = f"{user_key}:progress"
-        current_seed: int = int(self.redis.hget(progress_key, "current_seed"))
-        from_snippet_id: int = int(self.redis.hget(progress_key, "from_snippet_id"))
-        to_snippet_id: int = int(self.redis.hget(progress_key, "to_snippet_id"))
-        current_index: int = int(self.redis.hget(progress_key, "current_index"))
+        self.users.set_user_penalty(user, True)
+        penalty = self.redis.hget(f"user:{user.db_id}", "penalty").decode('utf-8')
+        self.assertEqual(int(penalty), 1)
 
-        self.assertEqual(current_seed, 1)
-        self.assertEqual(from_snippet_id, 100)
-        self.assertEqual(to_snippet_id, 200)
-        self.assertEqual(current_index, 150)
+        self.users.set_user_penalty(user, False)
+        penalty = self.redis.hget(f"user:{user.db_id}", "penalty").decode('utf-8')
+        self.assertEqual(int(penalty), 0)
+
+    def test_update_user_state_positive_how_true_positive(self):
+        user = self.users.create_user("testuser1", Face(), "Test User 1", -1)
+
+        self.users.update_user_state(user, True, 5, 10)
+        precision = float(self.redis.hget(f"user:{user.db_id}", "precision").decode('utf-8'))
+        expected = (.5 * (10 - 5) + (1. * 5)) / 10
+        self.assertAlmostEqual(precision, expected)
+
+    def test_update_user_state_positive_how_true_negative(self):
+        user = self.users.create_user("testuser1", Face(), "Test User 1", -1)
+
+        self.users.update_user_state(user, True, -5, 10)
+        precision = float(self.redis.hget(f"user:{user.db_id}", "precision").decode('utf-8'))
+        expected = (.5 * (10 + -5)) / 10
+        self.assertAlmostEqual(precision, expected)
+
+    def test_update_user_state_negative_how_true_positive(self):
+        user = self.users.create_user("testuser1", Face(), "Test User 1", -1)
+
+        self.users.update_user_state(user, False, 5, 10)
+        specificity = float(self.redis.hget(f"user:{user.db_id}", "specificity").decode('utf-8'))
+        expected = (.5 * (10 - 5) + (1. * 5)) / 10
+        self.assertAlmostEqual(specificity, expected)
+
+    def test_update_user_state_negative_how_true_negative(self):
+        user = self.users.create_user("testuser1", Face(), "Test User 1", -1)
+
+        self.users.update_user_state(user, False, -5, 10)
+        specificity = float(self.redis.hget(f"user:{user.db_id}", "specificity").decode('utf-8'))
+        expected = (.5 * (10 + -5)) / 10
+        self.assertAlmostEqual(specificity, expected)
+
+    if __name__ == '__main__':
+        unittest.main()
 
 
 if __name__ == "__main__":

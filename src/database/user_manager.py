@@ -102,20 +102,18 @@ class UserManager:
             raise KeyError(f"User {user_id} does not exist.")
 
         secret_name_hash = self.redis.hget(user_key, "secret_name_hash")
-        name_hash_key = f"name_hash:{secret_name_hash}"
+        name_hash_key = f"name_hash:{secret_name_hash.decode()}"
         if not self.redis.exists(name_hash_key):
             raise KeyError(f"User with name hash {secret_name_hash} does not exist.")
 
-        friend_ids = json.loads(self.redis.hget(user_key, "friends"))
+        friends = self.get_friends(user_id)
 
         with self.redis.pipeline() as pipe:
-            for each_friend_id in friend_ids:
-                self._remove_friend_unidirectional(each_friend_id, user_id, pipeline=pipe)
+            for each_friend in friends:
+                self._remove_friend_unidirectional(each_friend.db_id, user_id, pipeline=pipe)
             pipe.execute()
 
-        secret_name_hash = self.redis.hget(user_key, "secret_name_hash")
-
-        self.redis.srem("user_name_hashes", secret_name_hash)
+        self.redis.delete(name_hash_key)
         self.redis.delete(user_key)
 
     def make_friends(self, user_id: int, friend_id: int) -> None:
@@ -152,9 +150,7 @@ class UserManager:
 
         self._reset_user_expiration(f"user:{user_id}")
 
-    def get_friends(self, user: User) -> set[Friend]:
-        user_id = user.db_id
-
+    def get_friends(self, user_id: int) -> set[Friend]:
         users_friends_key = f"user:{user_id}:friends"
         friends = set()
         if not self.redis.exists(users_friends_key):
