@@ -66,6 +66,7 @@ class StartContent(ContentPage):
 
     async def create_content(self) -> None:
         logger.info("Start page")
+
         await self.client.connected()
 
         await self.set_user()
@@ -80,7 +81,11 @@ class StartContent(ContentPage):
                         invited = f" {invitee.public_name} invited"
                     ui.label(f"Oh...{invited} a new face!")
                 else:
-                    ui.label(f"Welcome back, {self.logged_in_user_name}!")
+                    if self.invited_by_id is None:
+                        ui.label(f"Welcome back, {self.logged_in_user_name}!")
+                    else:
+                        # do you want to be friends with this person?
+                        pass
 
                 title_label = ui.label("Look out for robots!")
                 title_label.classes("text-h4 font-bold text-grey-8")
