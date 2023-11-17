@@ -9,6 +9,16 @@ async def info_dialog(message: str) -> str:
     return await dialog
 
 
+async def option_dialog(message: str, options: list[str]) -> str:
+    with ui.dialog().props("persistent") as dialog, ui.card():
+        ui.label(message)
+        with ui.row():
+            for each_option in options:
+                ui.button(each_option, on_click=lambda _option=each_option: dialog.submit(_option))
+
+    return await dialog
+
+
 async def input_dialog(message: str) -> str:
     with ui.dialog().props("persistent") as dialog, ui.card():
         ui.label(message)

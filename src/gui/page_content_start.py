@@ -6,7 +6,7 @@ from nicegui import ui, Client
 
 from src.dataobjects import ViewCallbacks, Face
 from src.gui.elements.content_class import ContentPage
-from src.gui.elements.dialogs import info_dialog, input_dialog
+from src.gui.elements.dialogs import info_dialog, input_dialog, option_dialog
 from src.gui.elements.face import show_face
 from src.gui.tools import download_vcard, get_from_local_storage, set_in_local_storage, remove_from_local_storage
 from src.gui.elements.frame import frame
@@ -84,8 +84,19 @@ class StartContent(ContentPage):
                     if self.invited_by_id is None:
                         ui.label(f"Welcome back, {self.logged_in_user_name}!")
                     else:
-                        # do you want to be friends with this person?
-                        pass
+                        invitee = self.callbacks.get_user_by_id(self.invited_by_id)
+
+                        option = await option_dialog(
+                            f"Do you wanna be friends with {invitee.public_name}?",
+                            ["yes", "no"]
+                        )
+                        if option == "yes":
+                            name_hash = await get_from_local_storage("name_hash")
+                            user = self.callbacks.get_user(name_hash)
+                            self.callbacks.make_friends(
+                                self.invited_by_id,
+                                user.db_id
+                            )
 
                 title_label = ui.label("Look out for robots!")
                 title_label.classes("text-h4 font-bold text-grey-8")
