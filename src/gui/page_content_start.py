@@ -73,6 +73,7 @@ class StartContent(ContentPage):
 
         with frame() as _frame:
             with ui.column() as column:
+                # column.classes("items-center justify-center")  # h-full w-full")
                 if self.logged_in_user_name is None:
                     if self.invited_by_id is None:
                         invited = ""

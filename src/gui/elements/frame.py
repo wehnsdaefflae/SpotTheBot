@@ -27,7 +27,7 @@ def frame(header: bool = True, footer: bool = True) -> Generator[None, None, Non
             link_home = ui.link("home", "/")
             label_title = ui.label("Spot the Bot")
 
-    with ui.column():
+    with ui.column() as column:
         yield
 
     if footer:
