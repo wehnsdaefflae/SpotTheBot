@@ -43,6 +43,8 @@ class StartContent(ContentPage):
 
     async def _start_game(self) -> None:
         if self.logged_in_user_name is None:
+            await info_dialog("Tutorial: Please safe the following file. End each game using the \"quit\" button to "
+                              "prevent penalty.")
             public_name = await input_dialog("Enter your name and keep the following file safe.")
             name_seed = tuple(random.random() for _ in range(7))
             secret_name = generate_name(name_seed)
