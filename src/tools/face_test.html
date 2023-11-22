@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<style>
+    .image-container {
+        position: relative;
+    }
+
+    .image-container img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        mix-blend-mode: multiply;
+}
+</style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+    // Function to randomly select an image from a directory
+    function getRandomImage(dir, imgId) {
+        const randomNum = Math.floor(Math.random() * 100) + 1; // Random number between 1 and 10
+
+        // format the number to 0001, 0002, etc.
+        let formattedNum = ("000" + randomNum).slice(-4);
+
+        // Set the image source
+        document.getElementById(imgId).src = dir + '/' + formattedNum + '.png';
+    }
+
+    // Assign a random image to each img tag
+    getRandomImage('01_ears', 'ears');
+    // getRandomImage('02_heads', 'head');
+    getRandomImage('03_mouths', 'mouth');
+    getRandomImage('04_eyes', 'eyes');
+    getRandomImage('05_noses', 'nose');
+    getRandomImage('06_hairs', 'hair');
+});
+
+</script>
+
+<div class="image-container">
+    <img id="ears" alt="Ears">
+    <img id="head" alt="Head">
+    <img id="mouth" alt="Mouth">
+    <img id="eyes" alt="Eyes">
+    <img id="nose" alt="Nose">
+    <img id="hair" alt="Hair">
+</div>
+
+</body>
+</html>
