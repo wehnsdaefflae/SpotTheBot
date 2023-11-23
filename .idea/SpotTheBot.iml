@@ -6,6 +6,7 @@
       <excludeFolder url="file://$MODULE_DIR$/databases" />
       <excludeFolder url="file://$MODULE_DIR$/src/logs" />
       <excludeFolder url="file://$MODULE_DIR$/test/database/logs" />
+      <excludeFolder url="file://$MODULE_DIR$/src/tools/faces" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.11 (SpotTheBot)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
