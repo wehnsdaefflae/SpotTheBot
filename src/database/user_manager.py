@@ -45,7 +45,7 @@ class UserManager:
             "secret_name_hash":     secret_name_hash,
             "public_name":          public_name,
             "penalty":              int(user.penalty),
-            "face":                 json.dumps(face.to_tuple()),
+            "face":                 face.source_id,
             "precision":            user.state.precision,
             "specificity":          user.state.specificity,
             "db_id":                user_id,
@@ -74,8 +74,7 @@ class UserManager:
         }
 
         state = State(data.pop("precision"), data.pop("specificity"))
-        face_tuple = json.loads(data.pop("face"))
-        face = Face(*face_tuple)
+        face = Face(data.pop("face"))
         recent_snippet_ids = json.loads(data.pop("recent_snippet_ids"))
         user = User(
             secret_name_hash=data.pop("secret_name_hash"),
@@ -97,7 +96,6 @@ class UserManager:
 
         user_id = int(self.redis.get(name_hash_key))
         return self.get_user_by_id(user_id)
-
 
     def delete_user(self, user_id: int) -> None:
         # delete_user(243)

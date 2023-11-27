@@ -31,10 +31,10 @@ def colorize(signs_dict: dict[str, int]) -> tuple[tuple[str, str], ...]:
     return tuple((each_sign, next(color_generator)) for each_sign in signs)
 
 
-def download_vcard(secret_name: str, public_name: str) -> tuple[str, str]:
+def download_vcard(secret_name: str, public_name: str, face_id: str) -> tuple[str, str]:
     ram_disk_path = "/dev/shm/"
     now = datetime.datetime.now()
-    photo_url = "https://pbs.twimg.com/media/FSRec5QXEAE5h_Z.png"
+    photo_url = f"https://spotthebot.app/assets/images/portraits/{face_id}-2.jpg"
     on_mobile = True
     if on_mobile:
         with tempfile.NamedTemporaryFile(dir=ram_disk_path, mode="w", suffix=".vcf", delete=False) as file:

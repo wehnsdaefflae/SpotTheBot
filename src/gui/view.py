@@ -1,5 +1,5 @@
 # coding=utf-8
-from nicegui import ui, Client
+from nicegui import ui, Client, app
 
 from src.gui.dummies import DummyContent
 from src.dataobjects import ViewCallbacks
@@ -14,6 +14,7 @@ from src.gui.page_content_start import StartContent
 class View:
     def __init__(self):
         self.callbacks: ViewCallbacks | None = None
+        app.add_static_files(url_path="/assets", local_directory="../assets")
 
     def set_callbacks(self, callback: ViewCallbacks) -> None:
         self.callbacks = callback

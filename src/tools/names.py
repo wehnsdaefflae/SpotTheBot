@@ -52,10 +52,7 @@ def get_seed(dim: int) -> tuple[float, ...]:
 
 
 def generate_face(seed: tuple[float, ...]) -> Face:
-    # todo: replace with actual face parts
-    assert len(seed) == 7
-    face_seed = tuple(int(_x * 20) for _x in seed)
-    return Face(*face_seed)
+    return Face()
 
 
 def generate_superhero_name() -> str:

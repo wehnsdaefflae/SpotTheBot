@@ -14,6 +14,22 @@ from src.tools.names import generate_name
 from loguru import logger
 
 
+async def logout() -> None:
+    with ui.dialog().props("persistent") as dialog, ui.card():
+        ui.label(
+            "Are you sure you want to log out? If you want to restore it, you need to know your secret name."
+        )
+        with ui.row() as button_row:
+            ui.button("yes", on_click=lambda: dialog.submit("yes"))
+            ui.button("no", on_click=lambda: dialog.submit("no"))
+
+    result = await dialog
+    if result == "yes":
+        await remove_from_local_storage("name_hash")
+
+        ui.open("/")
+
+
 class StartContent(ContentPage):
     def __init__(self, client: Client, callbacks: ViewCallbacks) -> None:
         super().__init__(client, callbacks)
@@ -43,8 +59,9 @@ class StartContent(ContentPage):
 
     async def _start_game(self) -> None:
         if self.logged_in_user_name is None:
-            await info_dialog("Tutorial: Please safe the following file. End each game using the \"quit\" button to "
-                              "prevent penalty.")
+            await info_dialog(
+                "Tutorial: Please safe the following file. End each game using the \"quit\" button to prevent penalty."
+            )
             public_name = await input_dialog("Enter your name and keep the following file safe.")
             name_seed = tuple(random.random() for _ in range(7))
             secret_name = generate_name(name_seed)
@@ -54,7 +71,7 @@ class StartContent(ContentPage):
             if self.invited_by_id is not None:
                 self.callbacks.make_friends(user.db_id, self.invited_by_id)
 
-            source_path, target_path = download_vcard(secret_name, public_name)
+            source_path, target_path = download_vcard(secret_name, public_name, self.face.source_id)
             ui.download(source_path, target_path)
             await set_in_local_storage("identity_file", source_path)
             await set_in_local_storage("name_hash", user.secret_name_hash)
@@ -74,40 +91,70 @@ class StartContent(ContentPage):
         await self.set_user()
 
         with frame() as _frame:
-            with ui.column() as column:
-                # column.classes("items-center justify-center")  # h-full w-full")
-                if self.logged_in_user_name is None:
-                    if self.invited_by_id is None:
-                        invited = ""
-                    else:
-                        invitee = self.callbacks.get_user_by_id(self.invited_by_id)
-                        invited = f" {invitee.public_name} invited"
-                    ui.label(f"Oh...{invited} a new face!")
-                else:
-                    if self.invited_by_id is None:
-                        ui.label(f"Welcome back, {self.logged_in_user_name}!")
-                    else:
-                        invitee = self.callbacks.get_user_by_id(self.invited_by_id)
+            with ui.column() as top_column:
+                top_column.classes("items-center justify-center h-full w-full")
 
-                        option = await option_dialog(
-                            f"Do you wanna be friends with {invitee.public_name}?",
-                            ["yes", "no"]
-                        )
-                        if option == "yes":
-                            name_hash = await get_from_local_storage("name_hash")
-                            user = self.callbacks.get_user(name_hash)
-                            self.callbacks.make_friends(
-                                self.invited_by_id,
-                                user.db_id
-                            )
+                title_label = ui.label("Spot the Bot")
+                title_label.classes("text-h2")
 
-                title_label = ui.label("Look out for robots!")
-                title_label.classes("text-h4 font-bold text-grey-8")
+                with ui.row() as main_row:
+                    main_row.classes("items-center justify-center")
+                    # main_row.classes("items-center")
 
-                ui.markdown("Consider the following hints:")
+                    with ui.column() as column:
+                        column.classes("items-center justify-center")
+                        if self.logged_in_user_name is None:
+                            if self.invited_by_id is None:
+                                ui.label(f"Oh... ein neues Gesicht.")
+                            else:
+                                invitee = self.callbacks.get_user_by_id(self.invited_by_id)
+                                invited = f" {invitee.public_name} invited"
+                                ui.label(f"So, Du kommst also von {invitee.public_name}.")
+                        else:
+                            if self.invited_by_id is None:
+                                ui.label(f"Willkommen zurück, {self.logged_in_user_name}!")
+                            else:
+                                invitee = self.callbacks.get_user_by_id(self.invited_by_id)
 
-                with ui.row():
-                    with ui.column():
+                                option = await option_dialog(
+                                    f"Willst Du mit {invitee.public_name} befreundet sein?",
+                                    ["ja", "nein"]
+                                )
+                                if option == "ja":
+                                    name_hash = await get_from_local_storage("name_hash")
+                                    user = self.callbacks.get_user(name_hash)
+                                    self.callbacks.make_friends(
+                                        self.invited_by_id,
+                                        user.db_id
+                                    )
+
+                        face_element = show_face(self.face)
+                        face_element.classes("w-64 justify-center")
+                        # face_element.classes("w-64 justify-center")
+
+                    with ui.column() as mid_column:
+                        mid_column.classes("items-center justify-center")
+                        button_start = ui.button("Start!", on_click=self._start_game)
+
+                        ui.label("oder")
+
+                        name_hash = await get_from_local_storage("name_hash")
+                        if name_hash is None:
+                            identity_input = ui.input("Wechsel Deine Identität")
+                            identity_input.on("change", lambda: self.change_user(identity_input.value))
+
+                        else:
+                            label_logout = ui.button("Log out", on_click=logout)
+
+            with ui.column() as bottom_column:
+                bottom_column.classes("items-center justify-center h-full w-full")
+                hints = ui.markdown("Achte auf:")
+                hints.classes("text-h3")
+
+                with ui.row() as pos_neg_row:
+                    pos_neg_row.classes("items-center justify-center")
+                    with ui.column() as negative_column:
+                        negative_column.style('background-color: lightcoral; padding: 10px;')
                         # most true positives among positives
                         # Attributes most commonly and correctly identified by users as robot-like
                         good_markers = sorted(
@@ -116,10 +163,11 @@ class StartContent(ContentPage):
                         )
                         for i, (each_marker, each_score) in enumerate(good_markers):
                             each_indicator_label = ui.markdown(
-                                f"{each_score:.0%} of AI texts sound ***{each_marker}***"
+                                f"{each_score:.0%} von KI Texten sind ***{each_marker}***"
                             )
 
-                    with ui.column():
+                    with ui.column() as positive_column:
+                        positive_column.style('background-color: lightgreen; padding: 10px;')
                         # most false positives among negatives
                         # Attributes users most commonly mistake as robot-like in human-written text
                         bad_markers = sorted(
@@ -128,13 +176,6 @@ class StartContent(ContentPage):
                         )
                         for i, (each_marker, each_score) in enumerate(bad_markers):
                             each_indicator_label = ui.markdown(
-                                f"{each_score:.0%} of human texts **don't** sound ***{each_marker}***"
+                                f"{each_score:.0%} von echten Texten sind **nicht** ***{each_marker}***"
                             )
 
-                face_element = show_face(self.face)
-
-                ui.label("this isn't you?")
-                identity_input = ui.input("take on your secret identity")
-                identity_input.on("change", lambda: self.change_user(identity_input.value))
-
-                button_start = ui.button("SPOT THE BOT", on_click=self._start_game)

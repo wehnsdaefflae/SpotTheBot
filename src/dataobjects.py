@@ -1,4 +1,5 @@
 import dataclasses
+import hashlib
 import random
 import time
 from collections import deque, Counter
@@ -6,21 +7,17 @@ from enum import Enum
 from typing import Callable
 
 
+def get_random_face_id() -> str:
+    number = random.randint(0, 429)  # number of faces
+    a = hashlib.shake_128()
+    a.update(str(number).encode("utf-8"))
+    digest = a.hexdigest(4)
+    return digest[::-1]
+
+
 @dataclasses.dataclass(frozen=True)
 class Face:
-    shape: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
-    ears: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
-    mouth: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
-    nose: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
-    eyes: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
-    hair: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
-    accessory: int = dataclasses.field(default_factory=lambda: int(random.random() * 20))
-
-    def to_tuple(self) -> tuple[int, ...]:
-        return self.shape, self.ears, self.mouth, self.nose, self.eyes, self.hair, self.accessory
-
-    def __str__(self) -> str:
-        return f"Shape: {self.shape}\nEars: {self.ears}\nMouth: {self.mouth}\nNose: {self.nose}\nEyes: {self.eyes}\nHair: {self.hair}\nAccessory: {self.accessory}"
+    source_id: str = dataclasses.field(default_factory=get_random_face_id)
 
 
 @dataclasses.dataclass(frozen=True)
