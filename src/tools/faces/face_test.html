@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+    <style>
+        .photo-container {
+          position: relative;
+          display: inline-block; /* Allows the container to fit the size of the image */
+        }
+      
+        .photo {
+          display: block; /* Ensures the image block scales properly */
+          width: auto; /* Adjusts width automatically */
+          height: 768px; /* Height as per the image provided */
+          filter: sepia(0.3); /* Worn out look */
+          transform: rotate(1deg); /* Slightly rotated for a more natural look */
+          border-radius: 5px;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+      
+        .paper-clip {
+            position: absolute;
+            top: 20px; /* Position adjusted to match the screenshot */
+            right: 20px; /* Position adjusted to match the screenshot */
+            width: 100px; /* Size adjusted for visibility */
+            height: 200px; /* Size adjusted for visibility */
+            background-image: url('clip.png'); /* Path to the paper clip image */
+            background-size: contain; /* Ensures the paper clip image is contained within the div */
+            background-repeat: no-repeat; /* The paper clip image will not repeat */
+            z-index: 10; /* Ensures the paper clip appears above the photo */
+        }
+      
+        .bent-edge {
+          position: absolute;
+          top: 20px;
+          left: -10px;
+          width: 20px;
+          height: 100px;
+          background-color: white;
+          box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+          transform: rotate(-5deg);
+        }
+      </style>
+            
+    <div class="photo-container">
+        <img src="portrait.jpg" alt="Portrait" class="photo">
+        <div class="paper-clip"></div>
+        <div class="_bent-edge"></div>
+    </div>
+        
+</body>
+</html>

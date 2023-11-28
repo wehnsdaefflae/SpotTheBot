@@ -10,7 +10,7 @@ from src.gui.elements.dialogs import info_dialog, input_dialog, option_dialog
 from src.gui.elements.face import show_face
 from src.gui.tools import download_vcard, get_from_local_storage, set_in_local_storage, remove_from_local_storage
 from src.gui.elements.frame import frame
-from src.tools.names import generate_name
+from src.tools.faces.names import generate_name
 from loguru import logger
 
 
