@@ -34,7 +34,8 @@ async def login() -> None:
 @contextmanager
 def frame(name_hash: str | None, header: bool = True, footer: bool = True) -> Generator[None, None, None]:
     if header:
-        with ui.header(elevated=True):
+        with ui.header(elevated=True) as header:
+            header.style("display: flex; justify-content: flex-end;")
             # link_home = ui.link("home", "/")
             # label_title = ui.label("Spot the Bot")
 

@@ -105,6 +105,9 @@ class StartContent(ContentPage):
             with ui.column() as top_column:
                 top_column.classes("items-center justify-center h-full w-full")
 
+                title_label = ui.label("Spot the Bot")
+                title_label.classes("text-h2")
+
                 if self.user is None:
                     if self.invited_by_id is None:
                         ui.label(f"Oh... ein neues Gesicht.")
@@ -126,9 +129,6 @@ class StartContent(ContentPage):
                                 self.invited_by_id,
                                 self.user.db_id
                             )
-
-                title_label = ui.label("Spot the Bot")
-                title_label.classes("text-h2")
 
                 with ui.column() as main_column:
                     main_column.classes("items-center justify-center")
