@@ -39,17 +39,6 @@ def frame(name_hash: str | None, header: bool = True, footer: bool = True) -> Ge
             # link_home = ui.link("home", "/")
             # label_title = ui.label("Spot the Bot")
 
-            if name_hash is None:
-                login_button = ui.button("Log in", on_click=login)
-
-            else:
-                label_logout = ui.button("Log out", on_click=logout)
-
-    with ui.column() as column:
-        yield
-
-    if footer:
-        with ui.footer():
             with ui.row() as row:
                 label_results = ui.label("check out results")
                 label_results.classes("cursor-pointer")
@@ -58,4 +47,13 @@ def frame(name_hash: str | None, header: bool = True, footer: bool = True) -> Ge
                 label_about = ui.label("about")
                 label_about.classes("cursor-pointer")
                 label_about.on("click", lambda: ui.open("/about"))
+
+            if name_hash is None:
+                login_button = ui.button("Log in", on_click=login)
+
+            else:
+                label_logout = ui.button("Log out", on_click=logout)
+
+    with ui.column() as column:
+        yield
 
