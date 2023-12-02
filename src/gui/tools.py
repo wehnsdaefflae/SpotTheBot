@@ -61,7 +61,7 @@ def download_vcard(secret_name: str, public_name: str, face_id: str) -> tuple[st
 async def remove_from_local_storage(key: str) -> None:
     try:
         command = f"localStorage.removeItem('{key}')"
-        _ = ui.run_javascript(command)
+        _ = await ui.run_javascript(command)
 
     except TimeoutError as e:
         logger.error(e)
@@ -83,7 +83,8 @@ async def get_from_local_storage(key: str) -> str | None:
 async def set_in_local_storage(key: str, value: str) -> None:
     try:
         command = f"localStorage.setItem('{key}', '{value}')"
-        _ = ui.run_javascript(command)
+        _ = await ui.run_javascript(command)
+        logger.info(f"Set '{key}' to '{value}'.")
 
     except TimeoutError as e:
         logger.error(e)

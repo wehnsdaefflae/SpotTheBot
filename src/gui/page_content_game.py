@@ -23,7 +23,7 @@ class GameContent(ContentPage):
 
         self.user = None
 
-    def init_javascript(self, button_id: str) -> None:
+    def _init_javascript(self, button_id: str) -> None:
         init_js = (
             "window.spotTheBot = {",
             "    tag_count: {},",
@@ -50,7 +50,7 @@ class GameContent(ContentPage):
         )
         _ = ui.run_javascript("\n".join(init_js))
 
-    def decrement_points(self) -> None:
+    def _decrement_points(self) -> None:
         if 5 < self.points:
             self.points -= 1
         else:
@@ -58,52 +58,7 @@ class GameContent(ContentPage):
 
         self.text_points.content = f"{self.points} points remaining"
 
-    async def create_content(self) -> None:
-        logger.info("Game page")
-
-        await self.client.connected()
-
-        # app.on_connect(self.init_tag_count)
-
-        name_hash = await get_from_local_storage("name_hash")
-        if name_hash is None:
-            ui.open("/")
-
-        self.user = self.callbacks.get_user(name_hash)
-        penalize = self.user.penalty
-        logger.info(f"This round penalty: {penalize}")
-
-        self.callbacks.set_user_penalty(self.user, True)
-        logger.info("Setting penalty.")
-
-        snippet = self.callbacks.get_next_snippet(self.user)
-
-        word_count = len(snippet.text.split())
-        self.max_points = self.points = word_count // 4
-
-        interactive_text = InteractiveText(snippet)
-
-        with ui.column() as column:
-            text_display = interactive_text.get_content()
-
-            self.text_points = ui.markdown(f"{self.points} points remaining")
-
-            with ui.row() as row:
-                # retrieve stats
-                text_paranoid = ui.markdown("paranoid")
-                element_diagram = ui.element()
-                text_gullible = ui.markdown("gullible")
-
-        submit_button = ui.button(
-            self.submit_human,
-            on_click=lambda: self.submit(interactive_text, self.points, penalize)
-        )
-        submit_button.classes("w-full justify-center")
-        self.init_javascript(f"c{submit_button.id}")
-
-        self.timer = ui.timer(1, self.decrement_points)
-
-    async def submit(self, interactive_text: InteractiveText, points: int, penalize: bool) -> None:
+    async def _submit(self, interactive_text: InteractiveText, points: int, penalize: bool) -> None:
         identity_file = await get_from_local_storage("identity_file")
         if identity_file is not None and os.path.isfile(identity_file):
             os.remove(identity_file)
@@ -150,3 +105,48 @@ class GameContent(ContentPage):
 
         else:
             ui.open("/")
+
+    async def create_content(self) -> None:
+        logger.info("Game page")
+
+        await self.client.connected()
+
+        name_hash = await get_from_local_storage("name_hash")
+        if name_hash is None:
+            logger.warning("No name hash found, returning to start page.")
+            ui.open("/")
+            return
+
+        self.user = self.callbacks.get_user(name_hash)
+        penalize = self.user.penalty
+        logger.info(f"This round penalty: {penalize}")
+
+        self.callbacks.set_user_penalty(self.user, True)
+        logger.info("Setting penalty.")
+
+        snippet = self.callbacks.get_next_snippet(self.user)
+
+        word_count = len(snippet.text.split())
+        self.max_points = self.points = word_count // 4
+
+        interactive_text = InteractiveText(snippet)
+
+        with ui.column() as column:
+            text_display = interactive_text.get_content()
+
+            self.text_points = ui.markdown(f"{self.points} points remaining")
+
+            with ui.row() as row:
+                # retrieve stats
+                text_paranoid = ui.markdown("paranoid")
+                element_diagram = ui.element()
+                text_gullible = ui.markdown("gullible")
+
+        submit_button = ui.button(
+            self.submit_human,
+            on_click=lambda: self._submit(interactive_text, self.points, penalize)
+        )
+        submit_button.classes("w-full justify-center")
+        self._init_javascript(f"c{submit_button.id}")
+
+        self.timer = ui.timer(1, self._decrement_points)

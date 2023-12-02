@@ -120,6 +120,9 @@ class UserManager:
 
     def make_friends(self, user_id: int, friend_id: int) -> None:
         # make_friends('JohnDoe', 'JaneDoe')
+        if user_id == friend_id:
+            raise ValueError("Cannot befriend oneself.")
+
         user_key = f"user:{user_id}"
         if not self.redis.exists(user_key):
             raise KeyError(f"User {user_id} does not exist.")
@@ -164,10 +167,12 @@ class UserManager:
             if not self.redis.exists(friend_key):
                 raise KeyError(f"User {friend_key} does not exist.")
 
+            face_id = self.redis.hget(friend_key, "face")
+            public_name = self.redis.hget(friend_key, "public_name")
             each_friend = Friend(
                 db_id=int(each_friend_id),
-                name=self.redis.hget(friend_key, "public_name"),
-                face=Face(*json.loads(self.redis.hget(friend_key, "face")))
+                name=public_name.decode(),
+                face=Face(face_id.decode())
             )
             friends.add(each_friend)
 

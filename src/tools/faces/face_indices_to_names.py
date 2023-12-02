@@ -62,26 +62,19 @@ def number_to_hash(number: int) -> str:
 
 
 def rename_files() -> None:
-    folder = "../../assets/images/portraits/"
+    folder = "../../../assets/images/portraits/"
     file_list = sorted(os.listdir(folder))
-    names = list(random_names(len(file_list)))
 
-    previous_names = set()
+    hash_name = ""
 
     for i, each_file in enumerate(file_list):
-        if not each_file.endswith(".jpg"):
+        if not each_file.endswith(".png"):
             continue
 
         each_name, each_extension = os.path.splitext(each_file)
-        # index, variant = tuple(int(x) for x in each_name.split("-"))
-        prev_id, variant_str = each_name.split("-")
-        previous_names.add(prev_id)
-
-        variant = int(variant_str)
-        hash_name = number_to_hash(len(previous_names) - 1)
 
         source_name = f"{folder}{each_name}{each_extension}"
-        target_name = f"{folder}{hash_name}-{variant}{each_extension}"
+        target_name = f"{folder}{i // 3:04d}-{i % 3:d}{each_extension}"
 
         os.rename(source_name, target_name)
         # print(f"{source_name} -> {target_name}")

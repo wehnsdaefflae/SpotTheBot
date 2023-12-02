@@ -1,5 +1,4 @@
 # coding=utf-8
-import hashlib
 import random
 
 from nicegui import ui, Client
@@ -14,51 +13,34 @@ from src.tools.faces.names import generate_name
 from loguru import logger
 
 
-async def logout() -> None:
-    with ui.dialog().props("persistent") as dialog, ui.card():
-        ui.label(
-            "Are you sure you want to log out? If you want to restore it, you need to know your secret name."
-        )
-        with ui.row() as button_row:
-            ui.button("yes", on_click=lambda: dialog.submit("yes"))
-            ui.button("no", on_click=lambda: dialog.submit("no"))
-
-    result = await dialog
-    if result == "yes":
-        await remove_from_local_storage("name_hash")
-
-        ui.open("/")
-
-
 class StartContent(ContentPage):
     def __init__(self, client: Client, callbacks: ViewCallbacks) -> None:
         super().__init__(client, callbacks)
         self.face = None
-        self.logged_in_user_name = None
+        self.user = None
         self.invited_by_id = None
 
-    async def set_user(self) -> None:
-        name_hash = await get_from_local_storage("name_hash")
+    async def _set_user(self, name_hash: str | None) -> None:
         if name_hash is None:
+            self.user = None
             self.face = Face()
+            return
 
-        else:
-            user = self.callbacks.get_user(name_hash)
-            if user is None:
-                msg = "Sorry, there's no user with that identity. Did you mistype?"
-                await remove_from_local_storage("name_hash")
+        user = self.callbacks.get_user(name_hash)
+        if user is not None:
+            self.user = user
+            self.face = user.face
+            return
 
-                logger.error(msg)
-                await info_dialog(msg)
-
-                self.face = Face()
-
-            else:
-                self.face = user.face
-                self.logged_in_user_name = user.public_name
+        msg = "Sorry, there's no user with that identity. Did you mistype?"
+        await remove_from_local_storage("name_hash")
+        logger.error(msg)
+        await info_dialog(msg)
+        self.user = None
+        self.face = Face()
 
     async def _start_game(self) -> None:
-        if self.logged_in_user_name is None:
+        if self.user is None:
             await info_dialog(
                 "Tutorial: Please safe the following file. End each game using the \"quit\" button to prevent penalty."
             )
@@ -75,58 +57,85 @@ class StartContent(ContentPage):
             ui.download(source_path, target_path)
             await set_in_local_storage("identity_file", source_path)
             await set_in_local_storage("name_hash", user.secret_name_hash)
+            name_hash = await get_from_local_storage("name_hash")
+            if name_hash != user.secret_name_hash:
+                raise ValueError("Something went wrong with the local storage.")
 
         ui.open("/game")
 
-    def change_user(self, secret_identity: str) -> None:
-        name_hash = hashlib.sha256(secret_identity.encode()).hexdigest()
-        set_in_local_storage("name_hash", name_hash)
-        ui.open("/")
+    async def _confirm_end_friendship(self, friend_id: int) -> None:
+        with ui.dialog() as dialog, ui.card():
+            ui.label("Are you sure you want to end this friendship?")
+            ui.button("Yes", on_click=lambda: dialog.submit("yes"))
+            ui.button("No", on_click=lambda: dialog.submit("no"))
+
+        result = await dialog
+        if result == "yes":
+            logger.info("Ending friendship")
+            self.callbacks.remove_friendship(self.user.db_id, friend_id)
+            ui.open("/")
+        else:
+            logger.info("Not ending friendship")
+
+    async def _invite(self) -> None:
+        name_hash = await get_from_local_storage("name_hash")
+        if name_hash is None:
+            link = "spotthebot.app"
+        else:
+            user = self.callbacks.get_user(name_hash)
+            invitation_hash = self.callbacks.create_invitation(user)
+            link = f"spotthebot.app/invitation?value={invitation_hash}"
+
+        with ui.dialog() as dialog, ui.card():
+            ui.label(f"Give them this link:")
+            # use name hash and friend name to create a link
+            ui.label(link)
+
+        dialog.open()
 
     async def create_content(self) -> None:
         logger.info("Start page")
 
         await self.client.connected()
 
-        await self.set_user()
+        name_hash = await get_from_local_storage("name_hash")
+        await self._set_user(name_hash)
 
-        with frame() as _frame:
+        with frame(name_hash) as _frame:
             with ui.column() as top_column:
                 top_column.classes("items-center justify-center h-full w-full")
+
+                if self.user is None:
+                    if self.invited_by_id is None:
+                        ui.label(f"Oh... ein neues Gesicht.")
+                    else:
+                        invitee = self.callbacks.get_user_by_id(self.invited_by_id)
+                        ui.label(f"So, Du kommst also von {invitee.public_name}.")
+                else:
+                    if self.invited_by_id is None:
+                        ui.label(f"Willkommen zurück, {self.user.public_name}!")
+                    else:
+                        invitee = self.callbacks.get_user_by_id(self.invited_by_id)
+
+                        option = await option_dialog(
+                            f"Willst Du mit {invitee.public_name} befreundet sein?",
+                            ["ja", "nein"]
+                        )
+                        if option == "ja":
+                            self.callbacks.make_friends(
+                                self.invited_by_id,
+                                self.user.db_id
+                            )
 
                 title_label = ui.label("Spot the Bot")
                 title_label.classes("text-h2")
 
-                with ui.row() as main_row:
-                    main_row.classes("items-center justify-center")
+                with ui.column() as main_column:
+                    main_column.classes("items-center justify-center")
                     # main_row.classes("items-center")
 
                     with ui.column() as column:
                         column.classes("items-center justify-center")
-                        if self.logged_in_user_name is None:
-                            if self.invited_by_id is None:
-                                ui.label(f"Oh... ein neues Gesicht.")
-                            else:
-                                invitee = self.callbacks.get_user_by_id(self.invited_by_id)
-                                invited = f" {invitee.public_name} invited"
-                                ui.label(f"So, Du kommst also von {invitee.public_name}.")
-                        else:
-                            if self.invited_by_id is None:
-                                ui.label(f"Willkommen zurück, {self.logged_in_user_name}!")
-                            else:
-                                invitee = self.callbacks.get_user_by_id(self.invited_by_id)
-
-                                option = await option_dialog(
-                                    f"Willst Du mit {invitee.public_name} befreundet sein?",
-                                    ["ja", "nein"]
-                                )
-                                if option == "ja":
-                                    name_hash = await get_from_local_storage("name_hash")
-                                    user = self.callbacks.get_user(name_hash)
-                                    self.callbacks.make_friends(
-                                        self.invited_by_id,
-                                        user.db_id
-                                    )
 
                         face_element = show_face(self.face)
                         face_element.classes("w-64 justify-center")
@@ -136,19 +145,9 @@ class StartContent(ContentPage):
                         mid_column.classes("items-center justify-center")
                         button_start = ui.button("Start!", on_click=self._start_game)
 
-                        ui.label("oder")
-
-                        name_hash = await get_from_local_storage("name_hash")
-                        if name_hash is None:
-                            identity_input = ui.input("Wechsel Deine Identität")
-                            identity_input.on("change", lambda: self.change_user(identity_input.value))
-
-                        else:
-                            label_logout = ui.button("Log out", on_click=logout)
-
             with ui.column() as bottom_column:
                 bottom_column.classes("items-center justify-center h-full w-full")
-                hints = ui.markdown("Achte auf:")
+                hints = ui.markdown("Hinweise:")
                 hints.classes("text-h3")
 
                 with ui.row() as pos_neg_row:
@@ -178,4 +177,26 @@ class StartContent(ContentPage):
                             each_indicator_label = ui.markdown(
                                 f"{each_score:.0%} von echten Texten sind **nicht** ***{each_marker}***"
                             )
+
+            user = self.callbacks.get_user(name_hash)
+            if user is None:
+                pass
+
+            else:
+                with ui.column() as friends_column:
+                    hints = ui.markdown("KollegInnen")
+                    hints.classes("text-h3")
+
+                    friends = self.callbacks.get_friends(user.db_id)
+                    for each_friend in friends:
+                        with ui.row():
+                            friend_face = show_face(each_friend.face)
+                            ui.label(each_friend.name)
+                            ui.button(
+                                "Remove",
+                                on_click=lambda friend_id=each_friend.db_id: self._confirm_end_friendship(friend_id)
+                            )
+
+            invite_button = ui.button("Invite a friend", on_click=self._invite)
+
 

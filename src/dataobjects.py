@@ -8,11 +8,8 @@ from typing import Callable
 
 
 def get_random_face_id() -> str:
-    number = random.randint(0, 429)  # number of faces
-    a = hashlib.shake_128()
-    a.update(str(number).encode("utf-8"))
-    digest = a.hexdigest(4)
-    return digest[::-1]
+    number = random.randint(0, 220)  # number of faces
+    return f"{number:04d}"
 
 
 @dataclasses.dataclass(frozen=True)
