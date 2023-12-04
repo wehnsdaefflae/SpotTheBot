@@ -9,7 +9,6 @@ from src.gui.elements.content_class import ContentPage
 from src.gui.elements.dialogs import info_dialog, input_dialog, option_dialog
 from src.gui.elements.face import show_face
 from src.gui.tools import download_vcard, get_from_local_storage, set_in_local_storage, remove_from_local_storage
-from src.gui.elements.frame import frame
 from src.tools.faces.names import generate_name
 from loguru import logger
 
@@ -119,6 +118,31 @@ class StartContent(ContentPage):
 
     async def create_content(self) -> None:
         logger.info("Start page")
+        with ui.grid(columns=3, rows=2) as grid_main:
+            grid_main.style(
+                # "margin: 0; "
+                # "padding: 0; "
+                # "gap: 0; "
+                # "height: 100vh; "
+                "width: 800px; "
+                "overflow: hidden; "
+                "background: #399; "
+                # "color: #333; "
+                ""
+            )
+
+            ui.label("top left")
+            ui.label("top center")
+            ui.label("top right")
+
+            ui.label("bottom left")
+            ui.label("bottom center")
+            ui.label("bottom right")
+
+
+
+    async def _create_content(self) -> None:
+        logger.info("Start page")
 
         await self.client.connected()
 
@@ -176,7 +200,6 @@ class StartContent(ContentPage):
                 label_about = ui.label("about")
                 label_about.classes("cursor-pointer")
                 label_about.on("click", lambda: ui.open("/about"))
-
 
 
             with ui.column() as main_column:
