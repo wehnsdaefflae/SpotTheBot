@@ -42,15 +42,15 @@ class StartContent(ContentPage):
         self.face = None
         self.user = None
         self.invited_by_id = None
-        ui.add_head_html(
-            """
-            <style>
-                #root {
-                    all: unset;
-                }
-            </style>
-            """
-        )
+        #ui.add_body_html(
+        #    """
+        #    <style>
+        #        * {
+        #            all: initial;
+        #        }
+        #    </style>
+        #    """
+        #)
         ui.add_head_html('<link rel="stylesheet" type="text/css" href="assets/styles/start.css">')
 
     async def _set_user(self, name_hash: str | None) -> None:
