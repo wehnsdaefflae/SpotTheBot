@@ -42,6 +42,16 @@ class StartContent(ContentPage):
         self.face = None
         self.user = None
         self.invited_by_id = None
+        ui.add_head_html(
+            """
+            <style>
+                #root {
+                    all: unset;
+                }
+            </style>
+            """
+        )
+        ui.add_head_html('<link rel="stylesheet" type="text/css" href="assets/styles/start.css">')
 
     async def _set_user(self, name_hash: str | None) -> None:
         if name_hash is None:
@@ -118,27 +128,122 @@ class StartContent(ContentPage):
 
     async def create_content(self) -> None:
         logger.info("Start page")
-        with ui.grid(columns=3, rows=2) as grid_main:
-            grid_main.style(
-                # "margin: 0; "
-                # "padding: 0; "
-                # "gap: 0; "
-                # "height: 100vh; "
-                "width: 800px; "
-                "overflow: hidden; "
-                "background: #399; "
-                # "color: #333; "
-                ""
-            )
 
-            ui.label("top left")
-            ui.label("top center")
-            ui.label("top right")
+        await self.client.connected()
 
-            ui.label("bottom left")
-            ui.label("bottom center")
-            ui.label("bottom right")
+        name_hash = await get_from_local_storage("name_hash")
+        await self._set_user(name_hash)
 
+
+        with ui.element("div") as container:
+            container.classes("container")
+
+            # --- title start
+            with ui.element("div") as outer:
+                outer.classes("game-title pixel-corners-soft")
+
+                with ui.element("header") as header:
+                    title = ui.label("Spot the Bot")
+
+                with ui.element("div") as game_subtitle:
+                    game_subtitle.classes("game-subtitle")
+                    subtitle = ui.label("Mensch oder Maschine?")
+
+            # --- title end
+
+            # --- main start
+            with ui.element("div") as line:
+                line.classes("dashed-line")
+
+            with ui.element("h2") as subheader:
+                ui.label("Willkommen, Detektiv!")
+
+            with ui.element("div") as info:
+                info.classes("info")
+                info.style("display: none;")
+
+                ui.label("Willkommen bei \"Spot The Bot!\"")
+                ui.label(
+                    "Hier wirst Du zum Detektiv, indem Du herausfindest, ob Texte von einem Bot oder einem Menschen "
+                    "kommen. Kannst Du den Unterschied zu erkennen oder wirst Du von Bots an der Nase rumgeführt? "
+                    "Schau Dir an, was Texte von echten Menschen von mashinengeschriebenen utnerscheidet damit Du "
+                    "weißt, worauf Du achten musst."
+                )
+                ui.label("Los geht's, zeig den Bots, wer der Boss ist!")
+                ui.label("Viel Spaß beim Rätseln!")
+
+            with ui.element("aside") as aside_left:
+                aside_left.classes("left-info pixel-corners-hard")
+
+                with ui.element("h3") as left_header:
+                    ui.html("Texte von Bots sind")
+
+                good_markers = sorted(
+                    self.callbacks.most_successful_markers(4, 10),
+                    key=lambda x: x[1], reverse=True
+                )
+                for i, (each_marker, each_score) in enumerate(good_markers):
+                    each_indicator_label = ui.label(each_marker)
+                    each_indicator_label.classes("indicator")
+
+            with ui.element("div") as avatar:
+                avatar.classes("avatar-and-controls pixel-corners-hard--wrapper")
+                with ui.image(f"assets/images/portraits/{self.face.source_id}-2.png") as image:
+                    image.classes("avatar-image")
+                with ui.button("Login") as button:
+                    button.classes("login eightbit-btn eightbit-btn--proceed")
+
+            with ui.element("aside") as aside_right:
+                aside_right.classes("right-info pixel-corners-hard")
+
+                with ui.element("h3") as left_header:
+                    ui.html("Echte Texte sind <span class=\"underlined\">nicht</span>")
+
+                good_markers = sorted(
+                    self.callbacks.least_successful_markers(4, 10),
+                    key=lambda x: x[1], reverse=True
+                )
+                for i, (each_marker, each_score) in enumerate(good_markers):
+                    each_indicator_label = ui.label(each_marker)
+                    each_indicator_label.classes("indicator")
+
+            start_button = ui.button("Start")
+            start_button.classes("start eightbit-btn")
+            # --- main end
+
+            # --- friends start
+            with ui.element("div") as line:
+                line.classes("dashed-line")
+
+            with ui.element("h2") as subheader:
+                ui.label("KollegInnen")
+
+            with ui.element("section") as friends_gallery:
+                friends_gallery.classes("friends-gallery")
+
+                friends = self.callbacks.get_friends(self.user.db_id)
+                for each_friend in friends:
+                    with ui.element("div") as friend:
+                        friend.classes("friend pixel-corners-hard--wrapper")
+                        with ui.image(f"assets/images/portraits/{each_friend.face.source_id}-2.png") as image:
+                            image.classes("friend-avatar")
+                        with ui.label(each_friend.name) as name:
+                            name.classes("friend-name")
+                        with ui.label(f"Wins: {10}") as friend_stats:
+                            friend_stats.classes("friend-stats")
+
+                with ui.element("div") as friend:
+                    friend.classes("add-friend pixel-corners-hard--wrapper")
+
+            # --- friends end
+            # --- footer start
+            with ui.element("div") as line:
+                line.classes("dashed-line")
+
+            with ui.element("h2") as subheader:
+                ui.label("Footer")
+
+            # --- footer end
 
 
     async def _create_content(self) -> None:
