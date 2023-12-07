@@ -42,16 +42,16 @@ class StartContent(ContentPage):
         self.face = None
         self.user = None
         self.invited_by_id = None
+        ui.add_head_html('<link rel="stylesheet" type="text/css" href="assets/styles/start.css">')
         #ui.add_body_html(
         #    """
         #    <style>
-        #        * {
-        #            all: initial;
+        #        *, ::before, ::after {
+        #          all: initial !important;
         #        }
         #    </style>
         #    """
         #)
-        ui.add_head_html('<link rel="stylesheet" type="text/css" href="assets/styles/start.css">')
 
     async def _set_user(self, name_hash: str | None) -> None:
         if name_hash is None:
@@ -134,7 +134,6 @@ class StartContent(ContentPage):
         name_hash = await get_from_local_storage("name_hash")
         await self._set_user(name_hash)
 
-
         with ui.element("div") as container:
             container.classes("container")
 
@@ -143,7 +142,7 @@ class StartContent(ContentPage):
                 outer.classes("game-title pixel-corners-soft")
 
                 with ui.element("header") as header:
-                    title = ui.label("Spot the Bot")
+                    title = ui.label("Spot The Bot")
 
                 with ui.element("div") as game_subtitle:
                     game_subtitle.classes("game-subtitle")
@@ -155,12 +154,12 @@ class StartContent(ContentPage):
             with ui.element("div") as line:
                 line.classes("dashed-line")
 
-            with ui.element("h2") as subheader:
-                ui.label("Willkommen, Detektiv!")
+            name = "Detektiv" if self.user is None else self.user.public_name
+            with ui.markdown(f"Willkommen, ***{name}!***") as subheader:
+                subheader.classes("welcome")
 
             with ui.element("div") as info:
                 info.classes("info")
-                info.style("display: none;")
 
                 ui.label("Willkommen bei \"Spot The Bot!\"")
                 ui.label(
@@ -172,19 +171,22 @@ class StartContent(ContentPage):
                 ui.label("Los geht's, zeig den Bots, wer der Boss ist!")
                 ui.label("Viel Spaß beim Rätseln!")
 
-            with ui.element("aside") as aside_left:
-                aside_left.classes("left-info pixel-corners-hard")
+            with ui.element("div") as side_left:
+                side_left.classes("left-info pixel-corners-hard")
 
-                with ui.element("h3") as left_header:
-                    ui.html("Texte von Bots sind")
+                with ui.label("Texte von Bots sind") as left_header:
+                    left_header.classes("flanks-title")
 
                 good_markers = sorted(
                     self.callbacks.most_successful_markers(4, 10),
                     key=lambda x: x[1], reverse=True
                 )
-                for i, (each_marker, each_score) in enumerate(good_markers):
-                    each_indicator_label = ui.label(each_marker)
-                    each_indicator_label.classes("indicator")
+
+                with ui.element("div") as markers:
+                    markers.classes("markers")
+                    for i, (each_marker, each_score) in enumerate(good_markers):
+                        with ui.label(each_marker) as each_indicator_label:
+                            each_indicator_label.classes("indicator")
 
             with ui.element("div") as avatar:
                 avatar.classes("avatar-and-controls pixel-corners-hard--wrapper")
@@ -193,57 +195,64 @@ class StartContent(ContentPage):
                 with ui.button("Login") as button:
                     button.classes("login eightbit-btn eightbit-btn--proceed")
 
-            with ui.element("aside") as aside_right:
-                aside_right.classes("right-info pixel-corners-hard")
+            with ui.element("div") as side_right:
+                side_right.classes("right-info pixel-corners-hard")
 
-                with ui.element("h3") as left_header:
-                    ui.html("Echte Texte sind <span class=\"underlined\">nicht</span>")
+                with ui.markdown("Echte Texte sind <ins>nicht</ins>") as left_header:
+                    left_header.classes("flanks-title")
 
                 good_markers = sorted(
                     self.callbacks.least_successful_markers(4, 10),
                     key=lambda x: x[1], reverse=True
                 )
-                for i, (each_marker, each_score) in enumerate(good_markers):
-                    each_indicator_label = ui.label(each_marker)
-                    each_indicator_label.classes("indicator")
+                with ui.element("div") as markers:
+                    markers.classes("markers")
+                    for i, (each_marker, each_score) in enumerate(good_markers):
+                        with ui.label(each_marker) as each_indicator_label:
+                            each_indicator_label.classes("indicator")
 
-            start_button = ui.button("Start")
-            start_button.classes("start eightbit-btn")
+            with ui.button("Spiel starten") as start_button:
+                start_button.classes("start eightbit-btn")
             # --- main end
 
             # --- friends start
             with ui.element("div") as line:
                 line.classes("dashed-line")
 
-            with ui.element("h2") as subheader:
+            with ui.element("div") as subheader:
+                subheader.classes("welcome")
                 ui.label("KollegInnen")
 
             with ui.element("section") as friends_gallery:
                 friends_gallery.classes("friends-gallery")
 
-                friends = self.callbacks.get_friends(self.user.db_id)
-                for each_friend in friends:
-                    with ui.element("div") as friend:
-                        friend.classes("friend pixel-corners-hard--wrapper")
-                        with ui.image(f"assets/images/portraits/{each_friend.face.source_id}-2.png") as image:
-                            image.classes("friend-avatar")
-                        with ui.label(each_friend.name) as name:
-                            name.classes("friend-name")
-                        with ui.label(f"Wins: {10}") as friend_stats:
-                            friend_stats.classes("friend-stats")
+                if self.user is not None:
+                    friends = self.callbacks.get_friends(self.user.db_id)
+                    for each_friend in friends:
+                        with ui.element("div") as friend:
+                            friend.classes("friend pixel-corners-hard--wrapper")
+                            with ui.image(f"assets/images/portraits/{each_friend.face.source_id}-2.png") as image:
+                                image.classes("friend-avatar")
+                            with ui.label(each_friend.name) as name:
+                                name.classes("friend-name")
+                            with ui.label(f"Wins: {10}") as friend_stats:
+                                friend_stats.classes("friend-stats")
 
                 with ui.element("div") as friend:
-                    friend.classes("add-friend pixel-corners-hard--wrapper")
+                    friend.classes("friend add-friend pixel-corners-hard--wrapper")
+                    with ui.image("assets/images/portraits/add_friend.png") as image:
+                        image.classes("friend-avatar")
+                    with ui.label("Freund einladen") as name:
+                        name.classes("friend-name")
+                    with ui.label("(hier klicken)") as friend_stats:
+                        friend_stats.classes("friend-stats")
 
-            # --- friends end
-            # --- footer start
             with ui.element("div") as line:
                 line.classes("dashed-line")
 
-            with ui.element("h2") as subheader:
-                ui.label("Footer")
+            with ui.label("Footer") as subheader:
+                subheader.classes("welcome")
 
-            # --- footer end
 
 
     async def _create_content(self) -> None:
