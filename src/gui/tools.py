@@ -58,6 +58,18 @@ def download_vcard(secret_name: str, public_name: str, face_id: str) -> tuple[st
     return file.name, "spotthebot_secret_identity.txt"
 
 
+def serve_id_file(secret_name: str) -> tuple[str, str]:
+    ram_disk_path = "/dev/shm/"
+
+    with tempfile.NamedTemporaryFile(dir=ram_disk_path, mode="w", suffix=".txt", delete=False) as file:
+        file.write(
+            f"Secret ID for spotthebot.app:\n"
+            f"{secret_name}\n"
+        )
+
+    return file.name, "spotthebot_secret_identity.txt"
+
+
 async def remove_from_local_storage(key: str) -> None:
     try:
         command = f"localStorage.removeItem('{key}')"

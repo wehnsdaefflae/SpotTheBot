@@ -1,15 +1,15 @@
 # coding=utf-8
 import hashlib
-import random
+import uuid
 
 from nicegui import ui, Client
 
+from src.components.file_picker import FilePicker
 from src.dataobjects import ViewCallbacks, Face
 from src.gui.elements.content_class import ContentPage
 from src.gui.elements.dialogs import info_dialog, input_dialog, option_dialog
 from src.gui.elements.face import show_face
-from src.gui.tools import download_vcard, get_from_local_storage, set_in_local_storage, remove_from_local_storage
-from src.tools.faces.names import generate_name
+from src.gui.tools import get_from_local_storage, set_in_local_storage, remove_from_local_storage, serve_id_file
 from loguru import logger
 
 
@@ -42,16 +42,34 @@ class StartContent(ContentPage):
         self.face = None
         self.user = None
         self.invited_by_id = None
-        ui.add_head_html('<link rel="stylesheet" type="text/css" href="assets/styles/start.css">')
-        #ui.add_body_html(
-        #    """
-        #    <style>
-        #        *, ::before, ::after {
-        #          all: initial !important;
-        #        }
-        #    </style>
-        #    """
-        #)
+        ui.add_head_html("<link rel=\"stylesheet\" type=\"text/css\" href=\"assets/styles/start.css\">")
+
+    def _init_javascript(self) -> None:
+        init_js = (
+            "window.spotTheBot = {",
+            "    tag_count: {},",
+            f"    submit_button: document.getElementById(''),",
+            "    increment: function(tag) {",
+            f"        console.log(\"incrementing \" + tag + \"...\"); "
+            "        this.tag_count[tag] = (this.tag_count[tag] || 0) + 1;",
+            "        this.submit_button.children[1].children[0].innerText = '" + "';",
+            "        return this.tag_count[tag];",
+            "    },",
+            "    decrement: function(tag) {",
+            f"        console.log(\"decrementing \" + tag + \"...\"); ",
+            "        this.tag_count[tag]--;",
+            "        let sum = 0;",
+            "        for (let key in this.tag_count) {",
+            "            sum += this.tag_count[key];",
+            "        }",
+            "        if (sum === 0) {",
+            f"            this.submit_button.children[1].children[0].innerText = '';",
+            "        }",
+            "        return this.tag_count[tag];",
+            "    }",
+            "};"
+        )
+        _ = ui.run_javascript("\n".join(init_js))
 
     async def _set_user(self, name_hash: str | None) -> None:
         if name_hash is None:
@@ -74,19 +92,23 @@ class StartContent(ContentPage):
 
     async def _start_game(self) -> None:
         if self.user is None:
-            await info_dialog(
-                "Tutorial: Please safe the following file. End each game using the \"quit\" button to prevent penalty."
-            )
-            public_name = await input_dialog("Enter your name and keep the following file safe.")
-            name_seed = tuple(random.random() for _ in range(7))
-            secret_name = generate_name(name_seed)
+            public_name = await input_dialog("Gib Deinen Namen ein.")
+
+            secret_name = uuid.uuid4().hex
+
             invited_by_user_id = -1
             user = self.callbacks.create_user(secret_name, self.face, public_name, invited_by_user_id)
 
             if self.invited_by_id is not None:
                 self.callbacks.make_friends(user.db_id, self.invited_by_id)
 
-            source_path, target_path = download_vcard(secret_name, public_name, self.face.source_id)
+            source_path, target_path = serve_id_file(secret_name)
+
+            await info_dialog(
+                "Merk Dir, wo Du die Datei gespeichert hast. Du brauchst sie, um Dich wieder einzuloggen. "
+                "Beende das Spiel immer mit dem \"quit\" Button, um Strafpunkte zu vermeiden."
+            )
+
             ui.download(source_path, target_path)
             await set_in_local_storage("identity_file", source_path)
             await set_in_local_storage("name_hash", user.secret_name_hash)
@@ -192,8 +214,11 @@ class StartContent(ContentPage):
                 avatar.classes("avatar-and-controls pixel-corners-hard--wrapper")
                 with ui.image(f"assets/images/portraits/{self.face.source_id}-2.png") as image:
                     image.classes("avatar-image")
-                with ui.button("Login") as button:
-                    button.classes("login eightbit-btn eightbit-btn--proceed")
+
+                with ui.upload() as upload_button:
+                    upload_button.classes("upload-button login eightbit-btn--proceed")
+                    # upload_button.classes("upload-button logout eightbit-btn--proceed")
+                    upload_button.on("click", lambda: ui.notify("Upload your own image here!"))
 
             with ui.element("div") as side_right:
                 side_right.classes("right-info pixel-corners-hard")
@@ -215,45 +240,51 @@ class StartContent(ContentPage):
                 start_button.classes("start eightbit-btn")
             # --- main end
 
-            # --- friends start
             with ui.element("div") as line:
                 line.classes("dashed-line")
 
-            with ui.element("div") as subheader:
-                subheader.classes("welcome")
-                ui.label("KollegInnen")
+            if self.user is not None:
 
-            with ui.element("section") as friends_gallery:
-                friends_gallery.classes("friends-gallery")
+                # --- friends start
 
-                if self.user is not None:
-                    friends = self.callbacks.get_friends(self.user.db_id)
-                    for each_friend in friends:
-                        with ui.element("div") as friend:
-                            friend.classes("friend pixel-corners-hard--wrapper")
-                            with ui.image(f"assets/images/portraits/{each_friend.face.source_id}-2.png") as image:
-                                image.classes("friend-avatar")
-                            with ui.label(each_friend.name) as name:
-                                name.classes("friend-name")
-                            with ui.label(f"Wins: {10}") as friend_stats:
-                                friend_stats.classes("friend-stats")
+                with ui.element("div") as subheader:
+                    subheader.classes("welcome")
+                    ui.label("KollegInnen")
 
-                with ui.element("div") as friend:
-                    friend.classes("friend add-friend pixel-corners-hard--wrapper")
-                    with ui.image("assets/images/portraits/add_friend.png") as image:
-                        image.classes("friend-avatar")
-                    with ui.label("Freund einladen") as name:
-                        name.classes("friend-name")
-                    with ui.label("(hier klicken)") as friend_stats:
-                        friend_stats.classes("friend-stats")
+                with ui.element("section") as friends_gallery:
+                    friends_gallery.classes("friends-gallery")
 
-            with ui.element("div") as line:
-                line.classes("dashed-line")
+                    if self.user is not None:
+                        friends = self.callbacks.get_friends(self.user.db_id)
+                        for each_friend in friends:
+                            with ui.element("div") as friend:
+                                friend.classes("friend pixel-corners-hard--wrapper")
+                                with ui.image(f"assets/images/portraits/{each_friend.face.source_id}-2.png") as image:
+                                    image.classes("friend-avatar")
+                                with ui.label(each_friend.name) as name:
+                                    name.classes("friend-name")
+                                with ui.label(f"Wins: {10}") as friend_stats:
+                                    friend_stats.classes("friend-stats")
 
-            with ui.label("Footer") as subheader:
-                subheader.classes("welcome")
+                    with ui.element("div") as friend:
+                        friend.classes("friend add-friend pixel-corners-hard--wrapper")
+                        with ui.image("assets/images/portraits/add_friend.png") as image:
+                            image.classes("friend-avatar")
+                        with ui.label("Freund einladen") as name:
+                            name.classes("friend-name")
+                        with ui.label("(hier klicken)") as friend_stats:
+                            friend_stats.classes("friend-stats")
 
+                with ui.element("div") as line:
+                    line.classes("dashed-line")
 
+                with ui.label("Footer") as subheader:
+                    subheader.classes("welcome")
+
+                with ui.element("div") as line:
+                    line.classes("dashed-line")
+
+            self._init_javascript()
 
     async def _create_content(self) -> None:
         logger.info("Start page")

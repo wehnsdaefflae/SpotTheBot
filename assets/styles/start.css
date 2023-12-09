@@ -491,7 +491,7 @@ html {
     image-rendering: pixelated;
 }
 
-.login {
+.login-button {
     font-family: "EquipmentPro", sans-serif;
     display: grid;
     align-content: center;
@@ -508,6 +508,68 @@ html {
     background: #F2C409 !important;
     cursor: pointer;
     font-size: 1em;
+}
+
+.upload-button {
+    border-top: 4px solid black !important;
+}
+
+.upload-button.login {
+    background: #F7D51D !important;
+}
+
+.upload-button.logout {
+    background: #f71d1d !important;
+    border-top: 4px solid black !important;
+}
+
+.q-uploader {
+    all: unset;
+    width: 100%;
+}
+
+.q-uploader__header {
+    all: unset;
+}
+
+
+.q-uploader__list {
+    display: none;
+}
+
+.q-uploader__title {
+    display: none;
+}
+
+.q-uploader__subtitle {
+    display: none;
+}
+
+.q-uploader.upload-button > .q-uploader__header > .q-uploader__header-content > .flex.flex-center.no-wrap.q-gutter-xs > .col.column.justify-center {
+    display: none;
+}
+
+.q-focus-helper {
+    display: none;
+}
+
+i.q-icon.notranslate.material-icons {
+    display: none;
+}
+
+.upload-button .q-btn.q-btn-item {
+    width: 100%;
+    height: 100%;
+}
+
+.upload-button.login .q-btn.q-btn-item:before {
+    content: "Login";
+    font-size: 2em;
+}
+
+.upload-button.logout .q-btn.q-btn-item:before {
+    content: "Logout";
+    font-size: 2em;
 }
 
 .start {

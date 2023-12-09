@@ -8,28 +8,6 @@ from src.gui.elements.dialogs import input_dialog
 from src.gui.tools import remove_from_local_storage, set_in_local_storage
 
 
-async def logout() -> None:
-    with ui.dialog().props("persistent") as dialog, ui.card():
-        ui.label(
-            "Are you sure you want to log out? If you want to restore it, you need to know your secret name."
-        )
-        with ui.row() as button_row:
-            ui.button("yes", on_click=lambda: dialog.submit("yes"))
-            ui.button("no", on_click=lambda: dialog.submit("no"))
-
-    result = await dialog
-    if result == "yes":
-        await remove_from_local_storage("name_hash")
-
-        ui.open("/")
-
-
-async def login() -> None:
-    secret_name = await input_dialog("Enter your secret name.")
-    name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
-    await set_in_local_storage("name_hash", name_hash)
-    ui.open("/")
-
 
 @contextmanager
 def frame(name_hash: str | None, header: bool = True, footer: bool = True) -> Generator[None, None, None]:
@@ -49,10 +27,10 @@ def frame(name_hash: str | None, header: bool = True, footer: bool = True) -> Ge
                 label_about.on("click", lambda: ui.open("/about"))
 
             if name_hash is None:
-                login_button = ui.button("Log in", on_click=login)
+                login_button = ui.button("Log in")
 
             else:
-                label_logout = ui.button("Log out", on_click=logout)
+                label_logout = ui.button("Log out")
 
     with ui.column() as column:
         yield
