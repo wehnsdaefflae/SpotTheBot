@@ -447,7 +447,7 @@ html {
 
 .info {
     grid-column: 1 / -1;
-    display: none;
+    background: white;
 }
 
 .left-info,
@@ -480,8 +480,9 @@ html {
 .avatar-and-controls {
     grid-column: 3 / 4;
     width: 100%;
-    display: grid;
-    place-items: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     position: relative;
 }
 
@@ -489,87 +490,25 @@ html {
     max-width: 100%;
     width: 100%;
     image-rendering: pixelated;
+    height: auto;
 }
 
 .login-button {
-    font-family: "EquipmentPro", sans-serif;
-    display: grid;
-    align-content: center;
     position: absolute;
     bottom: 20px;
-    margin-left: auto;
-    margin-right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+
+    font-family: "EquipmentPro", sans-serif;
     width: 120px;
     height: 1.5em;
+    padding-bottom: 50px;
     min-height: initial;
-    padding: 5px 10px;
     text-transform: initial;
     color: rgb(0, 0, 0) !important;
     background: #F2C409 !important;
     cursor: pointer;
     font-size: 1em;
-}
-
-.upload-button {
-    border-top: 4px solid black !important;
-}
-
-.upload-button.login {
-    background: #F7D51D !important;
-}
-
-.upload-button.logout {
-    background: #f71d1d !important;
-    border-top: 4px solid black !important;
-}
-
-.q-uploader {
-    all: unset;
-    width: 100%;
-}
-
-.q-uploader__header {
-    all: unset;
-}
-
-
-.q-uploader__list {
-    display: none;
-}
-
-.q-uploader__title {
-    display: none;
-}
-
-.q-uploader__subtitle {
-    display: none;
-}
-
-.q-uploader.upload-button > .q-uploader__header > .q-uploader__header-content > .flex.flex-center.no-wrap.q-gutter-xs > .col.column.justify-center {
-    display: none;
-}
-
-.q-focus-helper {
-    display: none;
-}
-
-i.q-icon.notranslate.material-icons {
-    display: none;
-}
-
-.upload-button .q-btn.q-btn-item {
-    width: 100%;
-    height: 100%;
-}
-
-.upload-button.login .q-btn.q-btn-item:before {
-    content: "Login";
-    font-size: 2em;
-}
-
-.upload-button.logout .q-btn.q-btn-item:before {
-    content: "Logout";
-    font-size: 2em;
 }
 
 .start {

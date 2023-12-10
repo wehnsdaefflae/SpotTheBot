@@ -100,3 +100,17 @@ async def set_in_local_storage(key: str, value: str) -> None:
 
     except TimeoutError as e:
         logger.error(e)
+
+
+def make_xml(name: str, content: str | None = None, void_element: bool = False, **attributes: str) -> str:
+    if void_element and content is not None:
+        raise ValueError("Void elements cannot have content.")
+
+    attributes = " ".join(f'{key.removesuffix("_")}="{value}"' for key, value in attributes.items())
+    if void_element:
+        return f"<{name} {attributes}/>"
+
+    if content is None:
+        return f"<{name} {attributes}></{name}>"
+
+    return f"<{name} {attributes}>{content}</{name}>"

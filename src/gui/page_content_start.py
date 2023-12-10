@@ -4,12 +4,12 @@ import uuid
 
 from nicegui import ui, Client
 
-from src.components.file_picker import FilePicker
 from src.dataobjects import ViewCallbacks, Face
 from src.gui.elements.content_class import ContentPage
 from src.gui.elements.dialogs import info_dialog, input_dialog, option_dialog
 from src.gui.elements.face import show_face
-from src.gui.tools import get_from_local_storage, set_in_local_storage, remove_from_local_storage, serve_id_file
+from src.gui.tools import get_from_local_storage, set_in_local_storage, remove_from_local_storage, serve_id_file, \
+    make_xml
 from loguru import logger
 
 
@@ -47,28 +47,58 @@ class StartContent(ContentPage):
     def _init_javascript(self) -> None:
         init_js = (
             "window.spotTheBot = {",
-            "    tag_count: {},",
-            f"    submit_button: document.getElementById(''),",
-            "    increment: function(tag) {",
-            f"        console.log(\"incrementing \" + tag + \"...\"); "
-            "        this.tag_count[tag] = (this.tag_count[tag] || 0) + 1;",
-            "        this.submit_button.children[1].children[0].innerText = '" + "';",
-            "        return this.tag_count[tag];",
+            "    openDialog: function(event) {",
+            "        document.getElementById('fileid').click();",
             "    },",
-            "    decrement: function(tag) {",
-            f"        console.log(\"decrementing \" + tag + \"...\"); ",
-            "        this.tag_count[tag]--;",
-            "        let sum = 0;",
-            "        for (let key in this.tag_count) {",
-            "            sum += this.tag_count[key];",
+            "    logout: function(event) {",
+            "        localStorage.removeItem('name_hash');",
+            "        window.location.reload();",
+            "    },",
+            "    onLoaded: function(event) {",
+            "        console.log('loaded');",
+            "        let contents = event.target.result;",
+            "        let lines = contents.split('\\n');",
+            "        if (lines.length >= 2) {",
+            "            let secondLine = lines[1].trim();"
+            "            spotTheBot.hashAndStore(secondLine);",
+            "            window.location.reload();",
+            "        } else {",
+            "            console.log(\"The file does not have a second line.\");",
             "        }",
-            "        if (sum === 0) {",
-            f"            this.submit_button.children[1].children[0].innerText = '';",
-            "        }",
-            "        return this.tag_count[tag];",
+            "    },",
+            "    onUpload: function(event) {",
+            "       console.log('uploading');",
+            "       let file = document.getElementById('fileid').files[0];",
+            "       let reader = new FileReader();",
+            "       reader.onload = spotTheBot.onLoaded;",
+            "       reader.readAsText(file);",
+            "    },",
+            "    hashAndStore: async function(data) {",
+            "        const encoder = new TextEncoder();",
+            "        const dataEncoded = encoder.encode(data);",
+            "        const hashBuffer = await crypto.subtle.digest('SHA-256', dataEncoded);",
+            "        const hashArray = Array.from(new Uint8Array(hashBuffer));",
+            "        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');",
+            "        localStorage.setItem('name_hash', hashHex);",
+            "        console.log(`Hashed second line: ${hashHex}`);",
             "    }",
-            "};"
+            "};",
+            "document.getElementById('fileid').addEventListener('change', spotTheBot.onUpload, false);",
+            "let button = document.getElementById('buttonid');"
         )
+
+        if self.user is None:
+            init_js += (
+                "button.addEventListener('click', spotTheBot.openDialog);",
+                "button.value = 'Log in';",
+
+            )
+        else:
+            init_js += (
+                "button.addEventListener('click', spotTheBot.logout);",
+                "button.value = 'Log out';",
+            )
+
         _ = ui.run_javascript("\n".join(init_js))
 
     async def _set_user(self, name_hash: str | None) -> None:
@@ -159,132 +189,162 @@ class StartContent(ContentPage):
         with ui.element("div") as container:
             container.classes("container")
 
-            # --- title start
-            with ui.element("div") as outer:
-                outer.classes("game-title pixel-corners-soft")
+            self._render_title()
+            await self._render_welcome()
+            self._render_main()
 
-                with ui.element("header") as header:
-                    title = ui.label("Spot The Bot")
-
-                with ui.element("div") as game_subtitle:
-                    game_subtitle.classes("game-subtitle")
-                    subtitle = ui.label("Mensch oder Maschine?")
-
-            # --- title end
-
-            # --- main start
-            with ui.element("div") as line:
-                line.classes("dashed-line")
-
-            name = "Detektiv" if self.user is None else self.user.public_name
-            with ui.markdown(f"Willkommen, ***{name}!***") as subheader:
-                subheader.classes("welcome")
-
-            with ui.element("div") as info:
-                info.classes("info")
-
-                ui.label("Willkommen bei \"Spot The Bot!\"")
-                ui.label(
-                    "Hier wirst Du zum Detektiv, indem Du herausfindest, ob Texte von einem Bot oder einem Menschen "
-                    "kommen. Kannst Du den Unterschied zu erkennen oder wirst Du von Bots an der Nase rumgeführt? "
-                    "Schau Dir an, was Texte von echten Menschen von mashinengeschriebenen utnerscheidet damit Du "
-                    "weißt, worauf Du achten musst."
-                )
-                ui.label("Los geht's, zeig den Bots, wer der Boss ist!")
-                ui.label("Viel Spaß beim Rätseln!")
-
-            with ui.element("div") as side_left:
-                side_left.classes("left-info pixel-corners-hard")
-
-                with ui.label("Texte von Bots sind") as left_header:
-                    left_header.classes("flanks-title")
-
-                good_markers = sorted(
-                    self.callbacks.most_successful_markers(4, 10),
-                    key=lambda x: x[1], reverse=True
-                )
-
-                with ui.element("div") as markers:
-                    markers.classes("markers")
-                    for i, (each_marker, each_score) in enumerate(good_markers):
-                        with ui.label(each_marker) as each_indicator_label:
-                            each_indicator_label.classes("indicator")
-
-            with ui.element("div") as avatar:
-                avatar.classes("avatar-and-controls pixel-corners-hard--wrapper")
-                with ui.image(f"assets/images/portraits/{self.face.source_id}-2.png") as image:
-                    image.classes("avatar-image")
-
-                with ui.upload() as upload_button:
-                    upload_button.classes("upload-button login eightbit-btn--proceed")
-                    # upload_button.classes("upload-button logout eightbit-btn--proceed")
-                    upload_button.on("click", lambda: ui.notify("Upload your own image here!"))
-
-            with ui.element("div") as side_right:
-                side_right.classes("right-info pixel-corners-hard")
-
-                with ui.markdown("Echte Texte sind <ins>nicht</ins>") as left_header:
-                    left_header.classes("flanks-title")
-
-                good_markers = sorted(
-                    self.callbacks.least_successful_markers(4, 10),
-                    key=lambda x: x[1], reverse=True
-                )
-                with ui.element("div") as markers:
-                    markers.classes("markers")
-                    for i, (each_marker, each_score) in enumerate(good_markers):
-                        with ui.label(each_marker) as each_indicator_label:
-                            each_indicator_label.classes("indicator")
-
-            with ui.button("Spiel starten") as start_button:
+            with ui.button("Spiel starten", on_click=self._start_game) as start_button:
                 start_button.classes("start eightbit-btn")
-            # --- main end
-
-            with ui.element("div") as line:
-                line.classes("dashed-line")
 
             if self.user is not None:
+                self._render_friends_gallery()
 
-                # --- friends start
-
-                with ui.element("div") as subheader:
-                    subheader.classes("welcome")
-                    ui.label("KollegInnen")
-
-                with ui.element("section") as friends_gallery:
-                    friends_gallery.classes("friends-gallery")
-
-                    if self.user is not None:
-                        friends = self.callbacks.get_friends(self.user.db_id)
-                        for each_friend in friends:
-                            with ui.element("div") as friend:
-                                friend.classes("friend pixel-corners-hard--wrapper")
-                                with ui.image(f"assets/images/portraits/{each_friend.face.source_id}-2.png") as image:
-                                    image.classes("friend-avatar")
-                                with ui.label(each_friend.name) as name:
-                                    name.classes("friend-name")
-                                with ui.label(f"Wins: {10}") as friend_stats:
-                                    friend_stats.classes("friend-stats")
-
-                    with ui.element("div") as friend:
-                        friend.classes("friend add-friend pixel-corners-hard--wrapper")
-                        with ui.image("assets/images/portraits/add_friend.png") as image:
-                            image.classes("friend-avatar")
-                        with ui.label("Freund einladen") as name:
-                            name.classes("friend-name")
-                        with ui.label("(hier klicken)") as friend_stats:
-                            friend_stats.classes("friend-stats")
-
-                with ui.element("div") as line:
-                    line.classes("dashed-line")
-
-                with ui.label("Footer") as subheader:
-                    subheader.classes("welcome")
-
-                with ui.element("div") as line:
-                    line.classes("dashed-line")
+            self._render_footer()
 
             self._init_javascript()
+
+    async def _render_welcome(self) -> None:
+        #with ui.element("div") as line:
+        #    line.classes("dashed-line")
+
+        if self.user is None:
+            if self.invited_by_id is None:
+                welcome_message = ui.label(f"Oh... ein neues Gesicht.")
+            else:
+                invitee = self.callbacks.get_user_by_id(self.invited_by_id)
+                welcome_message = ui.label(f"So, Du kommst also von {invitee.public_name}.")
+        else:
+            welcome_message = ui.label(f"Willkommen zurück, {self.user.public_name}!")
+            if self.invited_by_id is not None:
+                invitee = self.callbacks.get_user_by_id(self.invited_by_id)
+
+                option = await option_dialog(
+                    f"Willst Du mit {invitee.public_name} befreundet sein?",
+                    ["ja", "nein"]
+                )
+                if option == "ja":
+                    self.callbacks.make_friends(
+                        self.invited_by_id,
+                        self.user.db_id
+                    )
+
+        welcome_message.classes("welcome")
+
+        with ui.expansion("Was ist \"Spot The Bot\"?", value=self.user is None) as info:
+            info.classes("info")
+
+            ui.label(
+                "Hier wirst Du zum Detektiv, indem Du herausfindest, ob Texte von einem Bot oder einem Menschen "
+                "kommen. Kannst Du den Unterschied zu erkennen oder wirst Du von Bots an der Nase rumgeführt? "
+                "Schau Dir an, was Texte von echten Menschen von maschinengeschriebenen unterscheidet damit Du "
+                "weißt, worauf Du achten musst."
+            )
+            ui.label("Los geht's, zeig den Bots, wer der Boss ist!")
+            ui.label("Viel Spaß beim Rätseln!")
+
+    def _render_main(self) -> None:
+        with ui.element("div") as side_left:
+            side_left.classes("left-info pixel-corners-hard")
+
+            with ui.label("Texte von Bots sind") as left_header:
+                left_header.classes("flanks-title")
+
+            good_markers = sorted(
+                self.callbacks.most_successful_markers(4, 10),
+                key=lambda x: x[1], reverse=True
+            )
+
+            with ui.element("div") as markers:
+                markers.classes("markers")
+                for i, (each_marker, each_score) in enumerate(good_markers):
+                    with ui.label(each_marker) as each_indicator_label:
+                        each_indicator_label.classes("indicator")
+
+        with ui.element("div") as avatar:
+            avatar.classes("avatar-and-controls pixel-corners-hard--wrapper")
+            with ui.image(f"assets/images/portraits/{self.face.source_id}-2.png") as image:
+                image.classes("avatar-image")
+
+            with ui.html("<input id='fileid' type='file' hidden/>") as file_input:
+                pass
+
+            input_html = make_xml(
+                "input", void_element=True,
+                id="buttonid", type="button", value="",
+                class_="login-button eightbit-btn--proceed pixel-corners-hard--wrapper"
+            )
+            with ui.html(input_html) as login_button:
+                pass
+
+        with ui.element("div") as side_right:
+            side_right.classes("right-info pixel-corners-hard")
+
+            with ui.markdown("Echte Texte sind <ins>nicht</ins>") as left_header:
+                left_header.classes("flanks-title")
+
+            good_markers = sorted(
+                self.callbacks.least_successful_markers(4, 10),
+                key=lambda x: x[1], reverse=True
+            )
+            with ui.element("div") as markers:
+                markers.classes("markers")
+                for i, (each_marker, each_score) in enumerate(good_markers):
+                    with ui.label(each_marker) as each_indicator_label:
+                        each_indicator_label.classes("indicator")
+
+    def _render_title(self) -> None:
+        with ui.element("div") as outer:
+            outer.classes("game-title pixel-corners-soft")
+
+            with ui.element("header") as header:
+                title = ui.label("Spot The Bot")
+
+            with ui.element("div") as game_subtitle:
+                game_subtitle.classes("game-subtitle")
+                subtitle = ui.label("Mensch oder Maschine?")
+
+    def _render_footer(self):
+        with ui.element("div") as line:
+            line.classes("dashed-line")
+        with ui.label("Footer") as subheader:
+            subheader.classes("welcome")
+
+    def _render_friends_gallery(self) -> None:
+        with ui.element("div") as line:
+            line.classes("dashed-line")
+
+        # --- friends start
+        with ui.element("div") as subheader:
+            subheader.classes("welcome")
+            ui.label("KollegInnen")
+
+        with ui.element("section") as friends_gallery:
+            friends_gallery.classes("friends-gallery")
+
+            if self.user is not None:
+                friends = self.callbacks.get_friends(self.user.db_id)
+                for each_friend in friends:
+                    with ui.element("div") as friend:
+                        friend.classes("friend pixel-corners-hard--wrapper")
+                        with ui.image(f"assets/images/portraits/{each_friend.face.source_id}-2.png") as image:
+                            image.classes("friend-avatar")
+
+                        with ui.label(each_friend.name) as name:
+                            name.classes("friend-name")
+
+                        with ui.label(f"Wins: {10}") as friend_stats:
+                            friend_stats.classes("friend-stats")
+
+            with ui.element("div") as friend:
+                friend.classes("friend add-friend pixel-corners-hard--wrapper")
+                with ui.image("assets/images/portraits/add_friend.png") as image:
+                    image.classes("friend-avatar")
+
+                with ui.label("Freund einladen") as name:
+                    name.classes("friend-name")
+
+                with ui.label("(hier klicken)") as friend_stats:
+                    friend_stats.classes("friend-stats")
 
     async def _create_content(self) -> None:
         logger.info("Start page")
@@ -307,7 +367,6 @@ class StartContent(ContentPage):
 
             else:
                 label_logout = ui.button("Log out", on_click=logout)
-
 
         with ui.column() as top_column:
             top_column.classes("items-center justify-center h-full w-full")
@@ -345,7 +404,6 @@ class StartContent(ContentPage):
                 label_about = ui.label("about")
                 label_about.classes("cursor-pointer")
                 label_about.on("click", lambda: ui.open("/about"))
-
 
             with ui.column() as main_column:
                 main_column.classes("items-center justify-center")
@@ -415,5 +473,3 @@ class StartContent(ContentPage):
                         )
 
         invite_button = ui.button("Invite a friend", on_click=self._invite)
-
-
