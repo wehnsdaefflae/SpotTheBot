@@ -391,9 +391,9 @@ html {
     /* Subtle background pattern can be added via an image */
 }
 
-
 .nicegui-content {
     padding: 0;
+
 }
 
 .container {
@@ -446,6 +446,7 @@ html {
 .info {
     grid-column: 1 / -1;
     background: white;
+    font-family: "MatchupPro", sans-serif;
 }
 
 .left-info,

@@ -14,3 +14,4 @@ qredis~=1.0.1
 openai~=1.3.5
 requests~=2.31.0
 starlette~=0.27.0
+qrcode~=7.4.2

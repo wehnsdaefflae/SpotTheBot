@@ -1,6 +1,10 @@
 # coding=utf-8
 import hashlib
+import os
+import tempfile
 import uuid
+
+import qrcode
 
 from nicegui import ui, Client
 
@@ -171,16 +175,23 @@ class StartContent(ContentPage):
             invitation_hash = self.callbacks.create_invitation(user)
             link = f"spotthebot.app/invitation?value={invitation_hash}"
 
+        qr = qrcode.make(link)
+        ram_disk_path = "/dev/shm/"
+
+        with tempfile.NamedTemporaryFile(dir=ram_disk_path, mode="bw", suffix=".png", delete=False) as file:
+            qr.save(file)
+
         with ui.dialog() as dialog, ui.card():
-            ui.label(f"Give them this link:")
-            # use name hash and friend name to create a link
+            ui.image(file.name)
+            ui.label(f"Teile diesen Link:")
             ui.label(link)
 
         dialog.open()
 
+        # todo: delete qr image file
+
     async def create_content(self) -> None:
         logger.info("Start page")
-
         await self.client.connected()
 
         name_hash = await get_from_local_storage("name_hash")
@@ -306,6 +317,7 @@ class StartContent(ContentPage):
     def _render_footer(self):
         with ui.element("div") as line:
             line.classes("dashed-line")
+
         with ui.label("Footer") as subheader:
             subheader.classes("welcome")
 
@@ -345,6 +357,10 @@ class StartContent(ContentPage):
 
                 with ui.label("(hier klicken)") as friend_stats:
                     friend_stats.classes("friend-stats")
+
+            # friend.on("click", lambda e: ui.notify("Not implemented yet"))
+            friend.on("click", self._invite)
+
 
     async def _create_content(self) -> None:
         logger.info("Start page")
