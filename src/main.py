@@ -4,7 +4,7 @@ import sys
 
 from nicegui import ui
 
-from controller import Controller
+from .controller import Controller
 
 from loguru import logger
 
