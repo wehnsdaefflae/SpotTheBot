@@ -1,6 +1,6 @@
-from src.database.model import Model
-from src.dataobjects import ViewCallbacks
-from src.gui.view import View
+from database.model import Model
+from dataobjects import ViewCallbacks
+from gui.view import View
 
 
 class Controller:

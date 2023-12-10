@@ -3,7 +3,7 @@ import unittest
 
 from loguru import logger
 
-from src.database.marker_manager import MarkerManager
+from database.marker_manager import MarkerManager
 
 
 class TestMarkers(unittest.TestCase):

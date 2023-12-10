@@ -1,6 +1,6 @@
 from nicegui import ui
 
-from src.dataobjects import Face
+from dataobjects import Face
 
 
 def show_face(face: Face) -> ui.element:

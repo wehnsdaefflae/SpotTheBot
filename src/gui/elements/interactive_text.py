@@ -4,9 +4,9 @@ from typing import Callable, Coroutine
 
 from nicegui import ui
 
-from src.gui.tools import colorize
-from src.gui.dummies import get_signs
-from src.dataobjects import Snippet
+from gui.tools import colorize
+from gui.dummies import get_signs
+from dataobjects import Snippet
 
 
 class InteractiveText:

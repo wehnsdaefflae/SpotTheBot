@@ -1,6 +1,5 @@
 # coding=utf-8
 import hashlib
-import os
 import tempfile
 import uuid
 
@@ -12,8 +11,7 @@ from src.dataobjects import ViewCallbacks, Face
 from src.gui.elements.content_class import ContentPage
 from src.gui.elements.dialogs import info_dialog, input_dialog, option_dialog
 from src.gui.elements.face import show_face
-from src.gui.tools import get_from_local_storage, set_in_local_storage, remove_from_local_storage, serve_id_file, \
-    make_xml
+from src.gui.tools import get_from_local_storage, set_in_local_storage, remove_from_local_storage, serve_id_file, make_xml
 from loguru import logger
 
 

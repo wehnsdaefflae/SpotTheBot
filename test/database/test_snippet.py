@@ -2,7 +2,7 @@ import json
 import unittest
 from loguru import logger
 
-from src.database.snippet_manager import SnippetManager
+from database.snippet_manager import SnippetManager
 
 
 class TestSnippets(unittest.TestCase):

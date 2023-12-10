@@ -4,8 +4,8 @@ from typing import Generator
 
 from nicegui import ui
 
-from src.gui.elements.dialogs import input_dialog
-from src.gui.tools import remove_from_local_storage, set_in_local_storage
+from gui.elements.dialogs import input_dialog
+from gui.tools import remove_from_local_storage, set_in_local_storage
 
 
 

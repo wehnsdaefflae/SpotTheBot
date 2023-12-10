@@ -10,7 +10,7 @@ from src.gui.page_content_start import StartContent
 class View:
     def __init__(self):
         self.callbacks: ViewCallbacks | None = None
-        app.add_static_files(url_path="/assets", local_directory="../assets")
+        app.add_static_files(url_path="/assets", local_directory="assets")
 
     def set_callbacks(self, callback: ViewCallbacks) -> None:
         self.callbacks = callback

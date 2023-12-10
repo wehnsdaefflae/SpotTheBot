@@ -1,6 +1,6 @@
 import json
 
-from src.database.marker import MarkerManager
+from database.marker import MarkerManager
 
 
 def main() -> None:

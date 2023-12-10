@@ -1,6 +1,6 @@
 import redislite
 
-from src.database.snippet import Snippets
+from database.snippet import Snippets
 
 
 def main() -> None:

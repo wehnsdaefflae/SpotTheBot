@@ -4,7 +4,7 @@ import sys
 
 from nicegui import ui
 
-from src.controller import Controller
+from controller import Controller
 
 from loguru import logger
 
@@ -13,7 +13,7 @@ logger.add("logs/file_{time}.log", backtrace=True, diagnose=True, rotation="500 
 
 
 def main() -> None:
-    with open("../config.json", mode="r") as config_file:
+    with open("config.json", mode="r") as config_file:
         config = json.load(config_file)
 
     nicegui_config = config.pop("nicegui")
