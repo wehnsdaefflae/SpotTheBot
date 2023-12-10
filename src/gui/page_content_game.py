@@ -3,10 +3,9 @@ import os
 from loguru import logger
 from nicegui import ui, Client
 
-from src.dataobjects import ViewCallbacks, Field
+from src.dataobjects import ViewCallbacks
 from src.gui.elements.content_class import ContentPage
 from src.gui.elements.dialogs import result_dialog
-from src.gui.elements.frame import frame
 from src.gui.elements.interactive_text import InteractiveText
 from src.gui.tools import get_from_local_storage
 
@@ -107,6 +106,51 @@ class GameContent(ContentPage):
             ui.open("/")
 
     async def create_content(self) -> None:
+        logger.info("Game page")
+
+        await self.client.connected()
+
+        name_hash = await get_from_local_storage("name_hash")
+        if name_hash is None:
+            logger.warning("No name hash found, returning to start page.")
+            ui.open("/")
+            return
+
+        self.user = self.callbacks.get_user(name_hash)
+        penalize = self.user.penalty
+        logger.info(f"This round penalty: {penalize}")
+
+        self.callbacks.set_user_penalty(self.user, True)
+        logger.info("Setting penalty.")
+
+        snippet = self.callbacks.get_next_snippet(self.user)
+
+        word_count = len(snippet.text.split())
+        self.max_points = self.points = word_count // 4
+
+        interactive_text = InteractiveText(snippet)
+
+        with ui.column() as column:
+            text_display = interactive_text.get_content()
+
+            self.text_points = ui.markdown(f"{self.points} points remaining")
+
+            with ui.row() as row:
+                # retrieve stats
+                text_paranoid = ui.markdown("paranoid")
+                element_diagram = ui.element()
+                text_gullible = ui.markdown("gullible")
+
+        submit_button = ui.button(
+            self.submit_human,
+            on_click=lambda: self._submit(interactive_text, self.points, penalize)
+        )
+        submit_button.classes("w-full justify-center")
+        self._init_javascript(f"c{submit_button.id}")
+
+        self.timer = ui.timer(1, self._decrement_points)
+
+    async def _create_content(self) -> None:
         logger.info("Game page")
 
         await self.client.connected()

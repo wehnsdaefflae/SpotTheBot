@@ -39,7 +39,7 @@
 }
 
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 .pixel-corners-soft,
@@ -324,16 +324,18 @@
   display: inline-block;
   position: relative;
   text-align: center;
+  font-size: 30px;
+  padding: 20px;
   text-decoration: none;
   color: #76c442;
-  box-shadow: inset -4px -4px 0 0 #4AA52E;
+  box-shadow: inset -4px -4px 0px 0px #4AA52E;
 }
 .eightbit-btn:hover, .eightbit-btn:focus {
   background: #76c442;
-  box-shadow: inset -6px -6px 0 0 #4AA52E;
+  box-shadow: inset -6px -6px 0px 0px #4AA52E;
 }
 .eightbit-btn:active {
-  box-shadow: inset 4px 4px 0 0 #4AA52E;
+  box-shadow: inset 4px 4px 0px 0px #4AA52E;
 }
 .eightbit-btn:before, .eightbit-btn:after {
   content: "";
@@ -356,68 +358,29 @@
 }
 .eightbit-btn--reset {
   background: #E76E55;
-  box-shadow: inset -4px -4px 0 0 #8C2022;
+  box-shadow: inset -4px -4px 0px 0px #8C2022;
 }
 .eightbit-btn--reset:hover, .eightbit-btn--reset:focus {
   background: #CE372B;
-  box-shadow: inset -6px -6px 0 0 #8C2022;
+  box-shadow: inset -6px -6px 0px 0px #8C2022;
 }
 .eightbit-btn--reset:active {
-  box-shadow: inset 4px 4px 0 0 #8C2022;
+  box-shadow: inset 4px 4px 0px 0px #8C2022;
 }
 .eightbit-btn--proceed {
   background: #F7D51D;
-  box-shadow: inset -4px -4px 0 0 #E59400;
+  box-shadow: inset -4px -4px 0px 0px #E59400;
 }
 .eightbit-btn--proceed:hover, .eightbit-btn--proceed:focus {
   background: #F2C409;
-  box-shadow: inset -6px -6px 0 0 #E59400;
+  box-shadow: inset -6px -6px 0px 0px #E59400;
 }
 .eightbit-btn--proceed:active {
-  box-shadow: inset 4px 4px 0 0 #E59400;
+  box-shadow: inset 4px 4px 0px 0px #E59400;
 }
 
-.button {
+button {
   font-family: 'EquipmentPro', sans-serif;
-}
-
-body,
-html {
-    max-width: 800px;
-    margin: 0 auto;
-    background: #dcdcdc;
-    font-family: 'ExpressionPro', sans-serif;
-    font-size: 1.3em;
-    /* Subtle background pattern can be added via an image */
-}
-
-
-.nicegui-content {
-    padding: 0;
-}
-
-.container {
-    display: grid;
-    grid-template-columns: 1fr 1fr 3fr 1fr 1fr;
-    gap: 32px;
-    padding: 10px;
-}
-
-.game-title {
-    grid-column: 1 / -1;
-    text-align: center;
-    font-size: 3em;
-    background: #000000;
-    /* Placeholder for title background */
-    color: #ffffff;
-    /* Placeholder for title color */
-    line-height: 1;
-}
-
-.game-subtitle {
-    font-size: .5em;
-    font-style: italic;
-    margin-bottom: .3em;
 }
 
 .dashed-line {
@@ -436,141 +399,129 @@ html {
   transform: translateY(-50%); /* Center the line vertically */
 }
 
-.welcome {
-    grid-column: 1 / -1;
-    text-align: center;
-    font-size: 1.5em;
-    font-weight: bold;
+
+body,
+html {
+  height: 100%;
+  width: 800px;
+  margin: 0 auto;
+  background: #f0f0f0;
+  font-family: 'ExpressionPro', sans-serif;
+  font-size: 32px;
+
+  /* Subtle background pattern can be added via an image */
 }
 
-.info {
-    grid-column: 1 / -1;
-    background: white;
+.container {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  row-gap: 0;
+  column-gap: 20px;
+  padding: 10px;
+  color: white;
+  background: black;
 }
 
-.left-info,
-.right-info {
-    background: #ffffff;
+h1 {
+  grid-column: 1 / -1;
+  text-align: center;
+  margin: 0;
+  font-style: italic;
+  font-size: 2.25em;
 }
 
-.left-info {
-    grid-column: 1 / 3;
+.text-content {
+  font-family: "MatchupPro", sans-serif;
+  font-size: 1.5em;
+  grid-column: 1 / -1;
+  background-color: white;
+  color: black;
+  padding: 20px;
+  /*word-spacing: 0;*/
 }
 
-.right-info {
-    grid-column: 4 / 6;
+.stats {
+  text-align: center;
+  display: grid;
+  place-items: center; /* Centers both vertically and horizontally */
 }
 
-.flanks-title {
-    text-align: center;
-    font-size: 1.2em;
-    margin-top: .5em;
-    margin-bottom: .5em;
-    line-height: 1;
-    font-weight: bold;
+.submit {
+  grid-column: 2 / -2;
+  text-align: center;
+  color: black;
+  margin: 30px;
 }
 
-.markers {
-    line-height: 1.2;
-    padding: .5em;
+.points-remaining {
+  grid-column: 1 / -1; /* Span across all columns */
+  height: 10px; /* Adjust the height as needed */
+  position: relative; /* Allows absolute positioning of the avatar */
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
-.avatar-and-controls {
-    grid-column: 3 / 4;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
+.points-remaining::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  border-top: 4px solid rgb(31, 168, 10); /* Creates the dashed line */
+  transform: translateY(-50%); /* Center the line vertically */
 }
 
-.avatar-image {
-    max-width: 100%;
-    width: 100%;
-    image-rendering: pixelated;
-    height: auto;
+.legend {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin: .5em;
+  margin-bottom: 1.5em;
 }
 
-.login-button {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-
-    font-family: "EquipmentPro", sans-serif;
-    width: 120px;
-    height: 1.5em;
-    padding-bottom: 50px;
-    min-height: initial;
-    text-transform: initial;
-    color: rgb(0, 0, 0) !important;
-    background: #F2C409 !important;
-    cursor: pointer;
-    font-size: 1em;
+.legend-item {
+  font-family: "ExpressionPro", sans-serif;
+  font-style: italic;
+  text-align: center;
+  padding: .1em;
+  padding-left: .4em;
+  padding-right: .4em;
+  font-size: 1em;
+  color: black;
 }
 
-.start {
-    font-family: "EquipmentPro", sans-serif;
-    display: grid;
-    align-content: center;
-    grid-column: 2 / -2;
-    min-height: initial;
-    text-transform: initial;
-    color: rgb(0, 0, 0) !important;
-    background: #76c442 !important;
-    height: 2em;
-    cursor: pointer;
-    font-size: 1.5em;
-    margin: 20px;
+.item-01 {
+  background-color: thistle;
 }
 
-.friends-gallery {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(120px, 1fr));
-    gap: 20px;
+.item-02 {
+  background-color: lightblue;
 }
 
-.friend {
-    text-align: center;
-    background: #cccccc no-repeat;
-    width: 100%;
-    height: 100%;
-    font-family: "MatchupPro", sans-serif;
-    padding-bottom: 10px;
-    position: relative;
-    overflow: hidden;
-    cursor: pointer;
-    line-height: 1;
+.word {
+  cursor: pointer;
+  position: relative;
+  color: black; /* Original text color */
 }
 
-.friend-avatar {
-  border-bottom: #000000 solid 4px;
-  image-rendering: pixelated;
+.word:hover::after {
   width: 100%;
-  max-width: 100%;
-  display: block;
-  /* Makes image fit to its container */
 }
 
-.friend-name,
-.friend-stats {
-  font-size: .75em;
+.untagged {
+  background-color: white;
+  z-index: -2;
 }
 
-.friend:hover::after {
+.untagged::after {
   content: '';
-  background: rgb(200, 0, 0);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 100%;
+  background-color: lightblue; /* Highlight color */
+  transition: width 0.5s ease; /* Animation timing */
+  z-index: -1;
 }
 
-.add-friend:hover::after {
-  content: '';
-  background: rgb(0, 150, 0);
-}
-
-.underlined {
-  text-decoration: underline;
-}
-
-
-/* Add media queries and additional styling as needed */

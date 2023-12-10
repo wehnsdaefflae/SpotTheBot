@@ -250,7 +250,7 @@ class StartContent(ContentPage):
                 left_header.classes("flanks-title")
 
             good_markers = sorted(
-                self.callbacks.most_successful_markers(4, 10),
+                self.callbacks.most_successful_markers(7, 10),
                 key=lambda x: x[1], reverse=True
             )
 
@@ -283,7 +283,7 @@ class StartContent(ContentPage):
                 left_header.classes("flanks-title")
 
             good_markers = sorted(
-                self.callbacks.least_successful_markers(4, 10),
+                self.callbacks.least_successful_markers(7, 10),
                 key=lambda x: x[1], reverse=True
             )
             with ui.element("div") as markers:
