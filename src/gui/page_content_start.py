@@ -204,6 +204,7 @@ class StartContent(ContentPage):
 
             with ui.button("Spiel starten", on_click=self._start_game) as start_button:
                 start_button.classes("start eightbit-btn")
+                start_button.disable()
 
             if self.user is not None:
                 self._render_friends_gallery()
