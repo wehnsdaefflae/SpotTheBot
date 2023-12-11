@@ -21,11 +21,6 @@ class View:
             game_content = GameContent(client, self.callbacks)
             await game_content.create_content()
 
-        @ui.page("/results")
-        async def results_page(client: Client) -> None:
-            results_content = DummyContent(client, self.callbacks)
-            await results_content.create_content()
-
         @ui.page("/about")
         async def about_page(client: Client) -> None:
             about_content = DummyContent(client, self.callbacks)

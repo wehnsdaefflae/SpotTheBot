@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from nicegui import Client, ui
 
-from dataobjects import ViewCallbacks
+from src.dataobjects import ViewCallbacks
 
 
 class ContentPage(ABC):
