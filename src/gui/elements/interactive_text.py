@@ -4,53 +4,75 @@ from typing import Callable, Coroutine
 
 from nicegui import ui
 
-from gui.tools import colorize
-from gui.dummies import get_signs
-from dataobjects import Snippet
+from src.dataobjects import Snippet
+from src.gui.dummies import get_signs
+from src.gui.tools import colorize
 
 
 class InteractiveText:
-    def __init__(self, snippet: Snippet):
+    def __init__(self, snippet: Snippet, max_points: int):
         self.snippet = snippet
         self.signs_dict = get_signs()
         self.colorized_signs = colorize(self.signs_dict)
         self.legend_tags = dict()
+        self.timer = None
+
+        self.max_points = self.points = max_points
+        self.text_points = None
+
         self.content = self._generate_content()
         self.legend = None
 
         self.selected_tags = Counter()
 
+    def _decrement_points(self) -> None:
+        if 5 < self.points:
+            self.points -= 1
+        else:
+            self.timer.deactivate()
+
+        self.text_points.content = f"{self.points} points remaining"
+
     def _generate_content(self) -> ui.column:
         lines = self.snippet.text.split("\n")
 
         with ui.column() as main_text_content:
-            ui.markdown(f"SOURCE: {self.snippet.source}")
+            main_text_content.classes("pixel-corners-hard--wrapper text-content")
+            # ui.markdown(f"SOURCE: {self.snippet.source}")
 
             with ui.column() as text_content:
                 for line_number, each_line in enumerate(lines):
                     with ui.row() as text_content_clickable:
+                        text_content_clickable.style("row-gap: 0;")
                         for each_word in re.split(" ", each_line):
                             if len(each_word) < 1:
                                 continue
 
                             each_word = each_word.strip()
                             label_word = ui.label(each_word)
-
                             label_word.on("click", lambda event: self._click_event(event.sender))
                             label_word.sus_sign = None
-                            label_word.classes("cursor-pointer")
+                            label_word.classes("cursor-pointer word untagged")
 
-            with ui.row() as self.legend:
-                for each_tag, each_color in self.colorized_signs:
-                    each_label = ui.label(each_tag)
-                    each_label.style(add=f"background-color: {each_color};")
-                    self.legend_tags[each_tag] = each_label
-                    each_label.set_visibility(False)
+        with ui.element("div") as points:
+            points.classes("points-remaining")
+            self.text_points = ui.markdown(f"{self.points} points remaining")
 
+        with ui.row() as self.legend:
+            self.legend.classes("legend")
+            for each_tag, each_color in self.colorized_signs:
+                each_label = ui.label(each_tag)
+                each_label.classes("legend-item item-01 pixel-corners-hard--wrapper")
+                # each_label.style(add=f"background-color: {each_color};")
+                self.legend_tags[each_tag] = each_label
+                each_label.set_visibility(False)
+
+        self.timer = ui.timer(1, self._decrement_points)
         return main_text_content
 
     async def _click_event(self, word_label: ui.label) -> None:
         if word_label.sus_sign is None:
+            word_label.classes("tagged")
             signs_popular = self.colorized_signs[:5]
             signs_rest = self.colorized_signs[5:]
             tag_word = self._get_tagging(word_label)
@@ -79,6 +101,7 @@ class InteractiveText:
         else:
             await self.decrement_tagged_word_count(word_label.sus_sign)
             word_label.default_slot.children.clear()
+            word_label.classes(remove="tagged")
             word_label.style(remove="background-color:;")
             word_label.sus_sign = None
 

@@ -422,7 +422,7 @@ html {
   background: black;
 }
 
-h1 {
+.header {
   grid-column: 1 / -1;
   text-align: center;
   margin: 0;
@@ -431,13 +431,14 @@ h1 {
 }
 
 .text-content {
-  font-family: "MatchupPro", sans-serif;
-  font-size: 1.5em;
-  grid-column: 1 / -1;
-  background-color: white;
-  color: black;
-  padding: 20px;
-  /*word-spacing: 0;*/
+    font-family: "MatchupPro", sans-serif;
+    font-size: 1.5em;
+    line-height: 1em;
+    grid-column: 1 / -1;
+    background-color: white;
+    color: black;
+    padding: 20px;
+    /*word-spacing: 0;*/
 }
 
 .stats {
@@ -499,29 +500,23 @@ h1 {
 }
 
 .word {
-  cursor: pointer;
-  position: relative;
-  color: black; /* Original text color */
+    cursor: pointer;
+    position: relative;
+    color: black; /* Original text color */
+    display: inline;
+  background: white;
+    z-index: 1;
 }
 
-.word:hover::after {
-  width: 100%;
-}
-
-.untagged {
-  background-color: white;
-  z-index: -2;
-}
-
-.untagged::after {
+.tagged::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   width: 0;
   height: 100%;
-  background-color: lightblue; /* Highlight color */
+  background: lightblue; /* Highlight color */
   transition: width 0.5s ease; /* Animation timing */
-  z-index: -1;
+  z-index: 0;
 }
 
