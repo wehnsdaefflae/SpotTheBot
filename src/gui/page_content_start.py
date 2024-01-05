@@ -44,7 +44,6 @@ class StartContent(ContentPage):
         self.face = None
         self.user = None
         self.invited_by_id = None
-        ui.add_head_html("<link rel=\"stylesheet\" type=\"text/css\" href=\"assets/styles/start.css\">")
 
     def _init_javascript(self) -> None:
         init_js = (
@@ -188,7 +187,92 @@ class StartContent(ContentPage):
 
         # todo: delete qr image file
 
+    async def main_section(self, header_classes: str) -> None:
+        with ui.column().classes("py-8 items-center gap-8") as container_main:
+            with ui.label("Welcome Karl!").classes(header_classes):
+                pass
+
+            with ui.element("div").classes("flex justify-evenly md:gap-4 md:grid md:grid-cols-3 my-2 "):
+                with ui.element("div").classes("w-2/5 md:w-full md:col-span-1 flex flex-col"):
+                    with ui.label("Stats Bots").classes("text-lg font-semibold mb-2 text-center"):
+                        pass
+                    with ui.element("ol").classes("list-decimal list-inside bg-red-200 rounded p-2 flex-grow"):
+                        with ui.label("Item 1"):
+                            pass
+                        with ui.label("Item 2"):
+                            pass
+
+                with ui.element("div").classes("md:col-span-1 relative w-full order-first md:order-none mb-4 md:mb-0"):
+                    with ui.element("img").props("src=assets/images/portraits/0000-0.png alt=Avatar").classes(
+                            "object-contain h-64 mx-auto rounded ").style("image-rendering: pixelated;"):
+                        pass
+
+                    with ui.button("Log Out").classes(
+                            "absolute bottom-2 left-1/2 transform -translate-x-1/2 "):
+                        pass
+
+                with ui.element("div").classes("w-2/5 md:w-full md:col-span-1 flex flex-col"):
+                    with ui.label("Stats Humans").classes("text-lg font-semibold mb-2 text-center"):
+                        pass
+                    with ui.element("ol").classes("list-decimal list-inside bg-purple-200 rounded p-2 flex-grow"):
+                        with ui.label("Item 1"):
+                            pass
+                        with ui.label("Item 2"):
+                            pass
+
+            with ui.button("Start Game").classes("w-5/6 "):
+                pass
+
+    async def footer_section(self, header_classes: str) -> None:
+        with ui.element("div").classes(" ") as container_footer:
+            with ui.label("Footer").classes(header_classes):
+                pass
+
+    async def friends_section(self, header_classes: str) -> None:
+        with ui.element("div").classes("py-8 ") as container_friends:
+            with ui.label("Friends").classes(header_classes):
+                pass
+
+            # Friends gallery with consistent layout
+            with ui.element("div").classes(
+                    "p-4 my-2 bg-indigo-200 rounded grid grid-cols-4 gap-4 justify-items-center"):
+                for i in range(1, 7):
+                    with ui.element("div").classes(f"bg-red-{i}00 h-20 w-20 md:h-40 md:w-40 rounded"):
+                        pass
+                with ui.button("Add Friend").classes("h-20 w-20 md:h-40 md:w-40 "):
+                    pass
+
+    async def title_section(self) -> None:
+        with ui.element("div") as title_container:
+            title_container.classes("text-center py-4 ")
+            with ui.label("Spot The Bot!").classes("text-4xl font-bold mb-2"):
+                pass
+            with ui.label("Mensch oder Maschine?").classes("text-2xl font-semibold mb-2 "):
+                pass
+            with ui.expansion("Was ist Spot The Bot?").classes("text-center "):
+                with ui.html(
+                        "Hier wirst Du zum Detektiv, indem Du herausfindest, ob Texte von einem Bot oder einem "
+                        "Menschen kommen. Kannst Du den Unterschied zu erkennen oder wirst Du von Bots an der Nase "
+                        "rumgeführt? Schau Dir an, was Texte von echten Menschen von maschinengeschriebenen "
+                        "unterscheidet damit Du weißt, worauf Du achten musst."
+                ).classes("text-lg text-gray-700 text-justify md:w-1/2 mx-auto "):
+                    pass
+
     async def create_content(self) -> None:
+        logger.info("Start page")
+
+        ui.query("body").classes("bg-gray-100 ")
+
+        header_classes = "text-2xl font-semibold text-center py-2"
+        with ui.element("div").classes("grid grid-cols-1 divide-y-4 divide-dashed justify-items-center "):
+            await self.title_section()
+            await self.main_section(header_classes)
+            await self.friends_section(header_classes)
+            await self.footer_section(header_classes)
+
+    async def _create_content(self) -> None:
+        ui.add_head_html("<link rel=\"stylesheet\" type=\"text/css\" href=\"assets/styles/start.css\">")
+
         logger.info("Start page")
         await self.client.connected()
 
@@ -360,131 +444,3 @@ class StartContent(ContentPage):
             # friend.on("click", lambda e: ui.notify("Not implemented yet"))
             friend.on("click", self._invite)
 
-
-    async def _create_content(self) -> None:
-        logger.info("Start page")
-
-        await self.client.connected()
-
-        name_hash = await get_from_local_storage("name_hash")
-        await self._set_user(name_hash)
-
-        with ui.grid(columns=3, rows=2) as grid_title:
-            grid_title.style("margin: 0; padding: 0; gap: 0;")
-            grid_title.classes("w-full h-32")
-
-            title_bot = ui.image("assets/images/elements/title_bot.png")
-            title = ui.image("assets/images/elements/title.png")
-            title_human = ui.image("assets/images/elements/title_human.png")
-
-            if name_hash is None:
-                login_button = ui.button("Log in", on_click=login)
-
-            else:
-                label_logout = ui.button("Log out", on_click=logout)
-
-        with ui.column() as top_column:
-            top_column.classes("items-center justify-center h-full w-full")
-
-            title_label = ui.label("Spot the Bot")
-            title_label.classes("text-h2")
-
-            if self.user is None:
-                if self.invited_by_id is None:
-                    ui.label(f"Oh... ein neues Gesicht.")
-                else:
-                    invitee = self.callbacks.get_user_by_id(self.invited_by_id)
-                    ui.label(f"So, Du kommst also von {invitee.public_name}.")
-            else:
-                if self.invited_by_id is None:
-                    ui.label(f"Willkommen zurück, {self.user.public_name}!")
-                else:
-                    invitee = self.callbacks.get_user_by_id(self.invited_by_id)
-
-                    option = await option_dialog(
-                        f"Willst Du mit {invitee.public_name} befreundet sein?",
-                        ["ja", "nein"]
-                    )
-                    if option == "ja":
-                        self.callbacks.make_friends(
-                            self.invited_by_id,
-                            self.user.db_id
-                        )
-
-            with ui.row() as row:
-                label_results = ui.label("check out results")
-                label_results.classes("cursor-pointer")
-                label_results.on("click", lambda: ui.open("/results"))
-
-                label_about = ui.label("about")
-                label_about.classes("cursor-pointer")
-                label_about.on("click", lambda: ui.open("/about"))
-
-            with ui.column() as main_column:
-                main_column.classes("items-center justify-center")
-                # main_row.classes("items-center")
-
-                with ui.column() as column:
-                    column.classes("items-center justify-center")
-
-                    face_element = show_face(self.face)
-                    face_element.classes("w-64 justify-center")
-                    # face_element.classes("w-64 justify-center")
-
-                with ui.column() as mid_column:
-                    mid_column.classes("items-center justify-center")
-                    button_start = ui.button("Start!", on_click=self._start_game)
-
-        with ui.column() as bottom_column:
-            bottom_column.classes("items-center justify-center h-full w-full")
-            hints = ui.markdown("Hinweise:")
-            hints.classes("text-h3")
-
-            with ui.row() as pos_neg_row:
-                pos_neg_row.classes("items-center justify-center")
-                with ui.column() as negative_column:
-                    negative_column.style('background-color: lightcoral; padding: 10px;')
-                    # most true positives among positives
-                    # Attributes most commonly and correctly identified by users as robot-like
-                    good_markers = sorted(
-                        self.callbacks.most_successful_markers(4, 10),
-                        key=lambda x: x[1], reverse=True
-                    )
-                    for i, (each_marker, each_score) in enumerate(good_markers):
-                        each_indicator_label = ui.markdown(
-                            f"{each_score:.0%} von KI Texten sind ***{each_marker}***"
-                        )
-
-                with ui.column() as positive_column:
-                    positive_column.style('background-color: lightgreen; padding: 10px;')
-                    # most false positives among negatives
-                    # Attributes users most commonly mistake as robot-like in human-written text
-                    bad_markers = sorted(
-                        self.callbacks.least_successful_markers(4, 10),
-                        key=lambda x: x[1], reverse=True
-                    )
-                    for i, (each_marker, each_score) in enumerate(bad_markers):
-                        each_indicator_label = ui.markdown(
-                            f"{each_score:.0%} von echten Texten sind **nicht** ***{each_marker}***"
-                        )
-
-        user = self.callbacks.get_user(name_hash)
-        if user is None:
-            pass
-
-        else:
-            with ui.column() as friends_column:
-                hints = ui.markdown("KollegInnen")
-                hints.classes("text-h3")
-
-                friends = self.callbacks.get_friends(user.db_id)
-                for each_friend in friends:
-                    with ui.row():
-                        friend_face = show_face(each_friend.face)
-                        ui.label(each_friend.name)
-                        ui.button(
-                            "Remove",
-                            on_click=lambda friend_id=each_friend.db_id: self._confirm_end_friendship(friend_id)
-                        )
-
-        invite_button = ui.button("Invite a friend", on_click=self._invite)
