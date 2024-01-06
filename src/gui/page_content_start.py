@@ -11,7 +11,8 @@ from src.dataobjects import ViewCallbacks, Face
 from src.gui.elements.content_class import ContentPage
 from src.gui.elements.dialogs import info_dialog, input_dialog, option_dialog
 from src.gui.elements.face import show_face
-from src.gui.tools import get_from_local_storage, set_in_local_storage, remove_from_local_storage, serve_id_file, make_xml
+from src.gui.tools import get_from_local_storage, set_in_local_storage, remove_from_local_storage, serve_id_file, \
+    make_xml
 from loguru import logger
 
 
@@ -91,25 +92,24 @@ class StartContent(ContentPage):
         if self.user is None:
             init_js += (
                 "button.addEventListener('click', spotTheBot.openDialog);",
-                "button.value = 'Log in';",
-
             )
         else:
             init_js += (
                 "button.addEventListener('click', spotTheBot.logout);",
-                "button.value = 'Log out';",
             )
 
         _ = ui.run_javascript("\n".join(init_js))
 
     async def _set_user(self, name_hash: str | None) -> None:
         if name_hash is None:
+            logger.info("No name hash found.")
             self.user = None
             self.face = Face()
             return
 
         user = self.callbacks.get_user(name_hash)
         if user is not None:
+            logger.info(f"Found user {user.public_name}.")
             self.user = user
             self.face = user.face
             return
@@ -188,39 +188,72 @@ class StartContent(ContentPage):
         # todo: delete qr image file
 
     async def main_section(self, header_classes: str) -> None:
-        with ui.column().classes("py-8 items-center gap-8") as container_main:
-            with ui.label("Welcome Karl!").classes(header_classes):
-                pass
+        with (ui.column().classes("py-8 items-center gap-8") as container_main):
+            if self.user is None:
+                if self.invited_by_id is None:
+                    welcome_message = ui.label(f"Oh... ein neues Gesicht.")
+                else:
+                    invitee = self.callbacks.get_user_by_id(self.invited_by_id)
+                    welcome_message = ui.label(f"So, Du kommst also von {invitee.public_name}.")
+            else:
+                welcome_message = ui.label(f"Willkommen zurück, {self.user.public_name}!")
+                if self.invited_by_id is not None:
+                    invitee = self.callbacks.get_user_by_id(self.invited_by_id)
+
+                    option = await option_dialog(
+                        f"Willst Du mit {invitee.public_name} befreundet sein?",
+                        ["ja", "nein"]
+                    )
+                    if option == "ja":
+                        self.callbacks.make_friends(
+                            self.invited_by_id,
+                            self.user.db_id
+                        )
+
+            welcome_message.classes(header_classes)
+
+            good_bot_markers = sorted(
+                self.callbacks.most_successful_markers(7, 10),
+                key=lambda x: x[1], reverse=True
+            )
+
+            bad_human_markers = sorted(
+                self.callbacks.least_successful_markers(7, 10),
+                key=lambda x: x[1], reverse=True
+            )
 
             with ui.element("div").classes("flex justify-evenly md:gap-4 md:grid md:grid-cols-3 my-2 "):
                 with ui.element("div").classes("w-2/5 md:w-full md:col-span-1 flex flex-col"):
-                    with ui.label("Stats Bots").classes("text-lg font-semibold mb-2 text-center"):
+                    with ui.markdown("Texte von Bots sind").classes("text-lg font-semibold mb-2 text-center"):
                         pass
                     with ui.element("ol").classes("list-decimal list-inside bg-red-200 rounded p-2 flex-grow"):
-                        with ui.label("Item 1"):
-                            pass
-                        with ui.label("Item 2"):
-                            pass
+                        for each_marker, each_score in good_bot_markers:
+                            with ui.label(each_marker):
+                                pass
 
                 with ui.element("div").classes("md:col-span-1 relative w-full order-first md:order-none mb-4 md:mb-0"):
-                    with ui.element("img").props("src=assets/images/portraits/0000-0.png alt=Avatar").classes(
+                    with ui.image(f"assets/images/portraits/{self.face.source_id}-2.png").classes(
                             "object-contain h-64 mx-auto rounded ").style("image-rendering: pixelated;"):
                         pass
 
-                    with ui.button("Log Out").classes(
-                            "absolute bottom-2 left-1/2 transform -translate-x-1/2 "):
-                        pass
+                    with ui.button().classes("absolute bottom-2 left-1/2 transform -translate-x-1/2 ").props("id=\"buttonid\"") as login_button:
+                        with ui.html("<input id='fileid' type='file' hidden/>") as file_input:
+                            pass
+                        if self.user is None:
+                            login_button.set_text("Log in")
+                        else:
+                            login_button.set_text("Log out")
 
                 with ui.element("div").classes("w-2/5 md:w-full md:col-span-1 flex flex-col"):
-                    with ui.label("Stats Humans").classes("text-lg font-semibold mb-2 text-center"):
+                    with ui.markdown("Echte Texte sind <ins>nicht</ins>").classes(
+                            "text-lg font-semibold mb-2 text-center"):
                         pass
                     with ui.element("ol").classes("list-decimal list-inside bg-purple-200 rounded p-2 flex-grow"):
-                        with ui.label("Item 1"):
-                            pass
-                        with ui.label("Item 2"):
-                            pass
+                        for each_marker, each_score in bad_human_markers:
+                            with ui.label(each_marker):
+                                pass
 
-            with ui.button("Start Game").classes("w-5/6 "):
+            with ui.button("Start Game", on_click=self._start_game).classes("w-5/6 "):
                 pass
 
     async def footer_section(self, header_classes: str) -> None:
@@ -229,6 +262,8 @@ class StartContent(ContentPage):
                 pass
 
     async def friends_section(self, header_classes: str) -> None:
+        friends = self.callbacks.get_friends(self.user.db_id)
+
         with ui.element("div").classes("py-8 ") as container_friends:
             with ui.label("Friends").classes(header_classes):
                 pass
@@ -236,10 +271,18 @@ class StartContent(ContentPage):
             # Friends gallery with consistent layout
             with ui.element("div").classes(
                     "p-4 my-2 bg-indigo-200 rounded grid grid-cols-4 gap-4 justify-items-center"):
-                for i in range(1, 7):
-                    with ui.element("div").classes(f"bg-red-{i}00 h-20 w-20 md:h-40 md:w-40 rounded"):
-                        pass
-                with ui.button("Add Friend").classes("h-20 w-20 md:h-40 md:w-40 "):
+                for each_friend in friends:
+                    with ui.element("div").classes("h-20 w-20 md:h-40 md:w-40 rounded ") as friend:
+                        with ui.image(f"assets/images/portraits/{each_friend.face.source_id}-2.png") as image:
+                            pass
+
+                        with ui.label(each_friend.name) as name:
+                            pass
+
+                        with ui.label(f"Wins: {10}") as friend_stats:
+                            pass
+
+                with ui.button("Add Friend", on_click=self._invite).classes("h-20 w-20 md:h-40 md:w-40 "):
                     pass
 
     async def title_section(self) -> None:
@@ -249,17 +292,22 @@ class StartContent(ContentPage):
                 pass
             with ui.label("Mensch oder Maschine?").classes("text-2xl font-semibold mb-2 "):
                 pass
-            with ui.expansion("Was ist Spot The Bot?").classes("text-center "):
+            with ui.expansion("Was ist Spot The Bot?", value=self.user is None).classes("text-center ") as info:
                 with ui.html(
                         "Hier wirst Du zum Detektiv, indem Du herausfindest, ob Texte von einem Bot oder einem "
                         "Menschen kommen. Kannst Du den Unterschied zu erkennen oder wirst Du von Bots an der Nase "
                         "rumgeführt? Schau Dir an, was Texte von echten Menschen von maschinengeschriebenen "
                         "unterscheidet damit Du weißt, worauf Du achten musst."
-                ).classes("text-lg text-gray-700 text-justify md:w-1/2 mx-auto "):
-                    pass
+                ).classes("text-lg text-gray-700 text-justify md:w-1/2 mx-auto cursor-pointer ") as info_text:
+                    info_text.on("click", lambda e: info.set_value(not info.value))
 
     async def create_content(self) -> None:
         logger.info("Start page")
+
+        await self.client.connected()
+
+        name_hash = await get_from_local_storage("name_hash")
+        await self._set_user(name_hash)
 
         ui.query("body").classes("bg-gray-100 ")
 
@@ -267,8 +315,11 @@ class StartContent(ContentPage):
         with ui.element("div").classes("grid grid-cols-1 divide-y-4 divide-dashed justify-items-center "):
             await self.title_section()
             await self.main_section(header_classes)
-            await self.friends_section(header_classes)
+            if self.user is not None:
+                await self.friends_section(header_classes)
             await self.footer_section(header_classes)
+
+        self._init_javascript()
 
     async def _create_content(self) -> None:
         ui.add_head_html("<link rel=\"stylesheet\" type=\"text/css\" href=\"assets/styles/start.css\">")
@@ -298,7 +349,7 @@ class StartContent(ContentPage):
             self._init_javascript()
 
     async def _render_welcome(self) -> None:
-        #with ui.element("div") as line:
+        # with ui.element("div") as line:
         #    line.classes("dashed-line")
 
         if self.user is None:
@@ -443,4 +494,3 @@ class StartContent(ContentPage):
 
             # friend.on("click", lambda e: ui.notify("Not implemented yet"))
             friend.on("click", self._invite)
-
