@@ -187,56 +187,58 @@ class StartContent(ContentPage):
 
         # todo: delete qr image file
 
-    async def main_section(self, header_classes: str) -> None:
-        with (ui.column().classes("py-8 items-center gap-8") as container_main):
-            if self.user is None:
-                if self.invited_by_id is None:
-                    welcome_message = ui.label(f"Oh... ein neues Gesicht.")
-                else:
-                    invitee = self.callbacks.get_user_by_id(self.invited_by_id)
-                    welcome_message = ui.label(f"So, Du kommst also von {invitee.public_name}.")
+    async def main_section(self, header_classes: str) -> ui.element:
+        good_bot_markers = sorted(
+            self.callbacks.most_successful_markers(7, 10),
+            key=lambda x: x[1], reverse=True
+        )
+
+        bad_human_markers = sorted(
+            self.callbacks.least_successful_markers(7, 10),
+            key=lambda x: x[1], reverse=True
+        )
+
+        if self.user is None:
+            if self.invited_by_id is None:
+                welcome_message = "Oh... ein neues Gesicht."
             else:
-                welcome_message = ui.label(f"Willkommen zurück, {self.user.public_name}!")
-                if self.invited_by_id is not None:
-                    invitee = self.callbacks.get_user_by_id(self.invited_by_id)
+                invitee = self.callbacks.get_user_by_id(self.invited_by_id)
+                welcome_message = f"So, Du kommst also von {invitee.public_name}?"
+        else:
+            welcome_message = f"Willkommen zurück, {self.user.public_name}!"
+            if self.invited_by_id is not None:
+                invitee = self.callbacks.get_user_by_id(self.invited_by_id)
 
-                    option = await option_dialog(
-                        f"Willst Du mit {invitee.public_name} befreundet sein?",
-                        ["ja", "nein"]
+                option = await option_dialog(
+                    f"Willst Du mit {invitee.public_name} befreundet sein?",
+                    ["ja", "nein"]
+                )
+                if option == "ja":
+                    self.callbacks.make_friends(
+                        self.invited_by_id,
+                        self.user.db_id
                     )
-                    if option == "ja":
-                        self.callbacks.make_friends(
-                            self.invited_by_id,
-                            self.user.db_id
-                        )
 
-            welcome_message.classes(header_classes)
-
-            good_bot_markers = sorted(
-                self.callbacks.most_successful_markers(7, 10),
-                key=lambda x: x[1], reverse=True
-            )
-
-            bad_human_markers = sorted(
-                self.callbacks.least_successful_markers(7, 10),
-                key=lambda x: x[1], reverse=True
-            )
+        with ui.column().classes("py-8 items-center gap-8") as container_main:
+            with ui.label(welcome_message).classes(header_classes):
+                pass
 
             with ui.element("div").classes("flex justify-evenly md:gap-4 md:grid md:grid-cols-3 my-2 "):
                 with ui.element("div").classes("w-2/5 md:w-full md:col-span-1 flex flex-col"):
                     with ui.markdown("Texte von Bots sind").classes("text-lg font-semibold mb-2 text-center"):
                         pass
-                    with ui.element("ol").classes("list-decimal list-inside bg-red-200 rounded p-2 flex-grow"):
+                    with ui.element("ol").classes("list-decimal list-inside bg-red-200 rounded p-2 flex-grow "):
                         for each_marker, each_score in good_bot_markers:
                             with ui.label(each_marker):
                                 pass
 
-                with ui.element("div").classes("md:col-span-1 relative w-full order-first md:order-none mb-4 md:mb-0"):
+                with ui.element("div").classes(
+                        "flex place-content-center "
+                        "md:col-span-1 relative w-full order-first md:order-none mb-4 md:mb-0 "):
                     with ui.image(f"assets/images/portraits/{self.face.source_id}-2.png").classes(
-                            "object-contain h-64 mx-auto rounded ").style("image-rendering: pixelated;"):
+                            "w-64 rounded z-0 ").style("image-rendering: pixelated;"):
                         pass
-
-                    with ui.button().classes("absolute bottom-2 left-1/2 transform -translate-x-1/2 ").props("id=\"buttonid\"") as login_button:
+                    with ui.button().classes("absolute bottom-5 left-1/2 transform -translate-x-1/2 w-32 z-50 ").props("id=\"buttonid\"") as login_button:
                         with ui.html("<input id='fileid' type='file' hidden/>") as file_input:
                             pass
                         if self.user is None:
@@ -256,12 +258,15 @@ class StartContent(ContentPage):
             with ui.button("Start Game", on_click=self._start_game).classes("w-5/6 "):
                 pass
 
-    async def footer_section(self, header_classes: str) -> None:
+        return container_main
+
+    async def footer_section(self, header_classes: str) -> ui.element:
         with ui.element("div").classes(" ") as container_footer:
             with ui.label("Footer").classes(header_classes):
                 pass
+        return container_footer
 
-    async def friends_section(self, header_classes: str) -> None:
+    async def friends_section(self, header_classes: str) -> ui.element:
         friends = self.callbacks.get_friends(self.user.db_id)
 
         with ui.element("div").classes("py-8 ") as container_friends:
@@ -285,7 +290,9 @@ class StartContent(ContentPage):
                 with ui.button("Add Friend", on_click=self._invite).classes("h-20 w-20 md:h-40 md:w-40 "):
                     pass
 
-    async def title_section(self) -> None:
+        return container_friends
+
+    async def title_section(self) -> ui.element:
         with ui.element("div") as title_container:
             title_container.classes("text-center py-4 ")
             with ui.label("Spot The Bot!").classes("text-4xl font-bold mb-2"):
@@ -300,12 +307,13 @@ class StartContent(ContentPage):
                         "unterscheidet damit Du weißt, worauf Du achten musst."
                 ).classes("text-lg text-gray-700 text-justify md:w-1/2 mx-auto cursor-pointer ") as info_text:
                     info_text.on("click", lambda e: info.set_value(not info.value))
+        return title_container
 
     async def create_content(self) -> None:
+        # ui.add_head_html("<link rel=\"stylesheet\" type=\"text/css\" href=\"assets/styles/start.css\">")
         logger.info("Start page")
 
         await self.client.connected()
-
         name_hash = await get_from_local_storage("name_hash")
         await self._set_user(name_hash)
 
@@ -313,17 +321,15 @@ class StartContent(ContentPage):
 
         header_classes = "text-2xl font-semibold text-center py-2"
         with ui.element("div").classes("grid grid-cols-1 divide-y-4 divide-dashed justify-items-center "):
-            await self.title_section()
-            await self.main_section(header_classes)
+            title_container = await self.title_section()
+            container_main = await self.main_section(header_classes)
             if self.user is not None:
-                await self.friends_section(header_classes)
-            await self.footer_section(header_classes)
+                container_friends = await self.friends_section(header_classes)
+            container_footer = await self.footer_section(header_classes)
 
         self._init_javascript()
 
     async def _create_content(self) -> None:
-        ui.add_head_html("<link rel=\"stylesheet\" type=\"text/css\" href=\"assets/styles/start.css\">")
-
         logger.info("Start page")
         await self.client.connected()
 

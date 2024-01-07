@@ -19,8 +19,6 @@ class GameContent(ContentPage):
         self.submit_bot = "It is a bot!"
         self.user = None
 
-        ui.add_head_html("<link rel=\"stylesheet\" type=\"text/css\" href=\"assets/styles/game.css\">")
-
     def _init_javascript(self, button_id: str) -> None:
         init_js = (
             "window.spotTheBot = {",
@@ -47,7 +45,6 @@ class GameContent(ContentPage):
             "};"
         )
         _ = ui.run_javascript("\n".join(init_js))
-
 
     async def _submit(self, interactive_text: InteractiveText, points: int, penalize: bool) -> None:
         identity_file = await get_from_local_storage("identity_file")
@@ -98,10 +95,11 @@ class GameContent(ContentPage):
             ui.open("/")
 
     async def create_content(self) -> None:
+        ui.add_head_html("<link rel=\"stylesheet\" type=\"text/css\" href=\"assets/styles/game.css\">")
+
         logger.info("Game page")
 
         await self.client.connected()
-
         name_hash = await get_from_local_storage("name_hash")
         if name_hash is None:
             logger.warning("No name hash found, returning to start page.")
