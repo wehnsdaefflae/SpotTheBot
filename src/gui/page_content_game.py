@@ -95,6 +95,55 @@ class GameContent(ContentPage):
             ui.open("/")
 
     async def create_content(self) -> None:
+        logger.info("Game page")
+
+        await self.client.connected()
+        name_hash = await get_from_local_storage("name_hash")
+        if name_hash is None:
+            logger.warning("No name hash found, returning to start page.")
+            ui.open("/")
+            return
+
+        self.user = self.callbacks.get_user(name_hash)
+        penalize = self.user.penalty
+        logger.info(f"This round penalty: {penalize}")
+
+        self.callbacks.set_user_penalty(self.user, True)
+        logger.info("Setting penalty.")
+
+        snippet = self.callbacks.get_next_snippet(self.user)
+
+        word_count = len(snippet.text.split())
+        max_points = word_count // 4
+
+        with ui.element("div") as main_container:
+            main_container.classes("container pixel-corners-soft")
+            header = ui.label("Finde Hinweise auf KI!")
+            header.classes("header")
+
+            ui.element("div").classes("dashed-line")
+
+            interactive_text = InteractiveText(snippet, max_points)
+
+            text_display = interactive_text.get_content()
+
+            # retrieve stats
+            text_paranoid = ui.markdown("RICHTIG erkannt: 3/5")
+            text_paranoid.classes("stats")
+            text_paranoid.style("grid-column: 1 / 2;")
+            submit_button = ui.button(
+                self.submit_human,
+                on_click=lambda: self._submit(interactive_text, self.points, penalize)
+            )
+            submit_button.classes("submit eightbit-btn")
+            submit_button.style("grid-column: 2 / 5;")
+            text_gullible = ui.markdown("FALSCH erkannt: 6/7")
+            text_gullible.classes("stats")
+            text_gullible.style("grid-column: 5 / 6;")
+
+            self._init_javascript(f"c{submit_button.id}")
+
+    async def _create_content(self) -> None:
         ui.add_head_html("<link rel=\"stylesheet\" type=\"text/css\" href=\"assets/styles/game.css\">")
 
         logger.info("Game page")

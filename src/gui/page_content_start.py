@@ -277,7 +277,7 @@ class StartContent(ContentPage):
             with ui.element("div").classes(
                     "p-4 my-2 bg-indigo-200 rounded grid grid-cols-4 gap-4 justify-items-center"):
                 for each_friend in friends:
-                    with ui.element("div").classes("h-20 w-20 md:h-40 md:w-40 rounded ") as friend:
+                    with ui.element("div").classes("w-20 md:w-40 rounded ") as friend:
                         with ui.image(f"assets/images/portraits/{each_friend.face.source_id}-2.png") as image:
                             pass
 
@@ -287,7 +287,13 @@ class StartContent(ContentPage):
                         with ui.label(f"Wins: {10}") as friend_stats:
                             pass
 
-                with ui.button("Add Friend", on_click=self._invite).classes("h-20 w-20 md:h-40 md:w-40 "):
+                        with ui.button(
+                                "entfernen",
+                                on_click=lambda e: self._confirm_end_friendship(each_friend.db_id)
+                        ).classes("w-20 md:w-40 "):
+                            pass
+
+                with ui.button("FreundIn einladen", on_click=self._invite).classes("w-20 md:w-40 "):
                     pass
 
         return container_friends
