@@ -5,7 +5,7 @@ from nicegui import ui, Client
 
 from src.dataobjects import ViewCallbacks
 from src.gui.elements.content_class import ContentPage
-from src.gui.elements.dialogs import result_dialog
+from src.gui.elements.dialogs import result_dialog, info_dialog
 from src.gui.elements.interactive_text import InteractiveText
 from src.gui.tools import get_from_local_storage
 
@@ -51,46 +51,38 @@ class GameContent(ContentPage):
         )
         _ = ui.run_javascript("\n".join(init_js))
 
-    async def _submit(self, interactive_text: InteractiveText, points: int, penalize: bool) -> None:
+    async def _submit(self, interactive_text: InteractiveText, points: int) -> None:
         identity_file = await get_from_local_storage("identity_file")
         if identity_file is not None and os.path.isfile(identity_file):
             os.remove(identity_file)
 
-        if penalize:
-            how_true = -1 * self.max_points // 2
-            self.callbacks.update_user_state(self.user, interactive_text.snippet.is_bot, how_true, self.max_points)
-            self.callbacks.set_user_penalty(self.user, False)
+        correct = interactive_text.snippet.is_bot == (0 < len(interactive_text.selected_tags))
 
-            selection = await result_dialog("PENALIZED!")
+        snippet_id = interactive_text.snippet.db_id
+        self.user.recent_snippet_ids.append(snippet_id)
 
-        else:
-            correct = interactive_text.snippet.is_bot == (0 < len(interactive_text.selected_tags))
+        how_true = points * (int(correct) * 2 - 1)
+        self.callbacks.update_user_state(self.user, interactive_text.snippet.is_bot, how_true, self.max_points)
 
-            snippet_id = interactive_text.snippet.db_id
-            self.user.recent_snippet_ids.append(snippet_id)
+        self.trues += int(interactive_text.snippet.is_bot)
+        self.falses += int(not interactive_text.snippet.is_bot)
 
-            how_true = points * (int(correct) * 2 - 1)
-            self.callbacks.update_user_state(self.user, interactive_text.snippet.is_bot, how_true, self.max_points)
+        self.true_positives += int(interactive_text.snippet.is_bot and correct)
+        self.false_positives += int(not interactive_text.snippet.is_bot and not correct)
 
-            self.trues += int(interactive_text.snippet.is_bot)
-            self.falses += int(not interactive_text.snippet.is_bot)
+        tags = interactive_text.selected_tags
 
-            self.true_positives += int(interactive_text.snippet.is_bot and correct)
-            self.false_positives += int(not interactive_text.snippet.is_bot and not correct)
+        base_truth = "BOT" if interactive_text.snippet.is_bot else "HUMAN"
+        classification = "HUMAN" if len(tags) < 1 else "BOT"
 
-            tags = interactive_text.selected_tags
+        if len(tags) >= 1:
+            self.callbacks.update_markers(tags, correct)
 
-            base_truth = "BOT" if interactive_text.snippet.is_bot else "HUMAN"
-            classification = "HUMAN" if len(tags) < 1 else "BOT"
-
-            if len(tags) >= 1:
-                self.callbacks.update_markers(tags, correct)
-
-            selection = await result_dialog(
-                f"{self.user.public_name} classified {base_truth} text "
-                f"{interactive_text.snippet.db_id} as {classification} "
-                f"with {points} points certainty of {self.max_points} total."
-            )
+        selection = await result_dialog(
+            f"{self.user.public_name} classified {base_truth} text "
+            f"{interactive_text.snippet.db_id} as {classification} "
+            f"with {points} points certainty of {self.max_points} total."
+        )
 
         if selection == "continue":
             interactive_text.update_content()
@@ -119,8 +111,15 @@ class GameContent(ContentPage):
         penalize = self.user.penalty
         logger.info(f"This round penalty: {penalize}")
 
-        self.callbacks.set_user_penalty(self.user, True)
-        logger.info("Setting penalty.")
+        if penalize:
+            self.callbacks.update_user_state(self.user, True, -5, 10)
+            self.callbacks.update_user_state(self.user, False, -5, 10)
+
+            selection = await info_dialog("PENALIZED!")
+
+        else:
+            self.callbacks.set_user_penalty(self.user, True)
+            logger.info("Setting penalty.")
 
         snippet = self.callbacks.get_next_snippet(self.user)
 
@@ -138,16 +137,25 @@ class GameContent(ContentPage):
             interactive_text.generate_content()
             interactive_text.update_content()
 
-            # self.user.state
-            # get success from submit target
             with ui.row() as stats_row:
                 stats_row.classes("flex justify-between ")
-                text_paranoid = ui.markdown(f"RICHTIG erkannt: {self.true_positives} / {self.trues}")
-                text_gullible = ui.markdown(f"FALSCH erkannt: {self.false_positives} / {self.falses}")
+                with ui.row():
+                    ui.label("RICHTIG erkannt: ")
+                    ui.label().bind_text(self, "true_positives")
+                    ui.label("/")
+                    ui.label().bind_text(self, "trues")
+                    ui.label("Bots")
+
+                with ui.row():
+                    ui.label("FALSCH erkannt: ")
+                    ui.label().bind_text(self, "false_positives")
+                    ui.label("/")
+                    ui.label().bind_text(self, "falses")
+                    ui.label("Menschen")
 
             submit_button = ui.button(
                 self.submit_human,
-                on_click=lambda: self._submit(interactive_text, self.points, penalize)
+                on_click=lambda: self._submit(interactive_text, self.points)
             )
             submit_button.classes("submit w-full ")
 

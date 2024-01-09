@@ -57,61 +57,40 @@ class InteractiveText:
 
     def update_content(self) -> None:
         self.snippet = self.get_snippet()
-        self._update_snippet_text(self.snippet.text)
+        self.reset_tagged_word_count()
         self._source_content = self.snippet.source
+        # todo: replace with link to video
+        self._update_snippet_text(self.snippet.text)
 
     def generate_content(self) -> ui.column:
         with ui.column() as main_column:
+            main_column.classes("bg-gray-100 rounded-lg shadow-lg p-4 max-w-4xl mx-auto ")
             with ui.markdown() as source_text:
                 source_text.classes("text-right text-sm text-gray-500 w-full ")
                 source_text.bind_content(self, "_source_content")
-                # todo: replace with link to video
 
             ui.separator()
 
-            # huge opening citation quote
-            with ui.label("“") as quote_start:
-                quote_start.classes("text-9xl text-gray-400 -mb-20 -ml-8 ")
+            ui.label("“").classes("text-9xl text-gray-400 h-8 ")
 
             with ui.column() as self._text_content:
                 self._text_content.classes("text-xl max-w-prose mx-auto ")
 
-                """
-                lines = self.snippet.text.split("\n")
-                for line_number, each_line in enumerate(lines):
-                    with ui.row() as text_content_clickable:
-                        text_content_clickable.classes("gap-y-0 ")
-                        for each_word in re.split(" ", each_line):
-                            if len(each_word) < 1:
-                                continue
+            ui.label("”").classes("text-9xl text-gray-400 w-full text-right h-8 ")
 
-                            each_word = each_word.strip()
-                            label_word = ui.label(each_word)
-                            label_word.on("click", lambda event: self._click_event(event.sender))
-                            label_word.sus_sign = None
-                            label_word.classes("cursor-pointer ")
-                            label_word.classes("word untagged ")
-                """
-
-            # huge closing citation quote
-            with ui.label("”") as quote_end:
-                quote_end.classes("text-9xl text-gray-400 -mb-8 w-full text-right ")
-
-        ui.separator()
+            with ui.row() as self.legend:
+                self.legend.classes("legend h-16 ")
+                for each_tag, each_color in self.colorized_signs:
+                    each_label = ui.label(each_tag)
+                    each_label.classes("legend-item item-01 ")
+                    # todo: custom labels are not colored correctly
+                    each_label.style(add=f"background-color: {each_color};")
+                    self.legend_tags[each_tag] = each_label
+                    each_label.set_visibility(False)
 
         with ui.element("div") as points:
             points.classes("text-center text-base ")
             self.text_points = ui.markdown(f"{self.points} points remaining")
-
-        with ui.row() as self.legend:
-            self.legend.classes("legend h-16 ")
-            for each_tag, each_color in self.colorized_signs:
-                each_label = ui.label(each_tag)
-                each_label.classes("legend-item item-01 ")
-                # todo: custom labels are not colored correctly
-                each_label.style(add=f"background-color: {each_color};")
-                self.legend_tags[each_tag] = each_label
-                each_label.set_visibility(False)
 
         self.timer = ui.timer(1, self._decrement_points)
         return main_column
@@ -174,6 +153,12 @@ class InteractiveText:
         color = tag_dict.get(tag, "grey")
         tag_word = self._get_tagging(word_label)
         await tag_word(tag, menu, color)
+
+    async def reset_tagged_word_count(self) -> None:
+        await ui.run_javascript("window.spotTheBot.tag_count = {};")
+        self.selected_tags.clear()
+        for each_label in self.legend_tags.values():
+            each_label.set_visibility(False)
 
     async def increment_tagged_word_count(self, tag: str) -> None:
         count = await ui.run_javascript(f"window.spotTheBot.increment('{tag}');")
