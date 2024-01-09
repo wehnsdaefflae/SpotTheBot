@@ -10,9 +10,7 @@ from nicegui import ui, Client
 from src.dataobjects import ViewCallbacks, Face
 from src.gui.elements.content_class import ContentPage
 from src.gui.elements.dialogs import info_dialog, input_dialog, option_dialog
-from src.gui.elements.face import show_face
-from src.gui.tools import get_from_local_storage, set_in_local_storage, remove_from_local_storage, serve_id_file, \
-    make_xml
+from src.gui.tools import get_from_local_storage, set_in_local_storage, remove_from_local_storage, serve_id_file
 from loguru import logger
 
 
@@ -325,184 +323,15 @@ class StartContent(ContentPage):
 
         ui.query("body").classes("bg-gray-100 ")
 
-        header_classes = "text-2xl font-semibold text-center py-2"
-        with ui.element("div").classes("grid grid-cols-1 divide-y-4 divide-dashed justify-items-center "):
+        header_classes = "text-2xl font-semibold text-center py-2 "
+        with ui.element("div").classes("grid grid-cols-1 justify-items-center "):  # divide-y-4 divide-dashed
             title_container = await self.title_section()
+            ui.separator()
             container_main = await self.main_section(header_classes)
+            ui.separator()
             if self.user is not None:
                 container_friends = await self.friends_section(header_classes)
+                ui.separator()
             container_footer = await self.footer_section(header_classes)
 
         self._init_javascript()
-
-    async def _create_content(self) -> None:
-        logger.info("Start page")
-        await self.client.connected()
-
-        name_hash = await get_from_local_storage("name_hash")
-        await self._set_user(name_hash)
-
-        with ui.element("div") as container:
-            container.classes("container")
-
-            self._render_title()
-            await self._render_welcome()
-            self._render_main()
-
-            with ui.button("Spiel starten", on_click=self._start_game) as start_button:
-                start_button.classes("start eightbit-btn")
-                # start_button.disable()
-
-            if self.user is not None:
-                self._render_friends_gallery()
-
-            self._render_footer()
-
-            self._init_javascript()
-
-    async def _render_welcome(self) -> None:
-        # with ui.element("div") as line:
-        #    line.classes("dashed-line")
-
-        if self.user is None:
-            if self.invited_by_id is None:
-                welcome_message = ui.label(f"Oh... ein neues Gesicht.")
-            else:
-                invitee = self.callbacks.get_user_by_id(self.invited_by_id)
-                welcome_message = ui.label(f"So, Du kommst also von {invitee.public_name}.")
-        else:
-            welcome_message = ui.label(f"Willkommen zurück, {self.user.public_name}!")
-            if self.invited_by_id is not None:
-                invitee = self.callbacks.get_user_by_id(self.invited_by_id)
-
-                option = await option_dialog(
-                    f"Willst Du mit {invitee.public_name} befreundet sein?",
-                    ["ja", "nein"]
-                )
-                if option == "ja":
-                    self.callbacks.make_friends(
-                        self.invited_by_id,
-                        self.user.db_id
-                    )
-
-        welcome_message.classes("welcome")
-
-        with ui.expansion("Was ist \"Spot The Bot\"?", value=self.user is None) as info:
-            info.classes("info")
-
-            ui.label(
-                "Hier wirst Du zum Detektiv, indem Du herausfindest, ob Texte von einem Bot oder einem Menschen "
-                "kommen. Kannst Du den Unterschied zu erkennen oder wirst Du von Bots an der Nase rumgeführt? "
-                "Schau Dir an, was Texte von echten Menschen von maschinengeschriebenen unterscheidet damit Du "
-                "weißt, worauf Du achten musst."
-            )
-            ui.label("Los geht's, zeig den Bots, wer der Boss ist!")
-            ui.label("Viel Spaß beim Rätseln!")
-
-    def _render_main(self) -> None:
-        with ui.element("div") as side_left:
-            side_left.classes("left-info pixel-corners-hard")
-
-            with ui.label("Texte von Bots sind") as left_header:
-                left_header.classes("flanks-title")
-
-            good_markers = sorted(
-                self.callbacks.most_successful_markers(7, 10),
-                key=lambda x: x[1], reverse=True
-            )
-
-            with ui.element("div") as markers:
-                markers.classes("markers")
-                for i, (each_marker, each_score) in enumerate(good_markers):
-                    with ui.label(each_marker) as each_indicator_label:
-                        each_indicator_label.classes("indicator")
-
-        with ui.element("div") as avatar:
-            avatar.classes("avatar-and-controls pixel-corners-hard--wrapper")
-            with ui.image(f"assets/images/portraits/{self.face.source_id}-2.png") as image:
-                image.classes("avatar-image")
-
-            with ui.html("<input id='fileid' type='file' hidden/>") as file_input:
-                pass
-
-            input_html = make_xml(
-                "input", void_element=True,
-                id="buttonid", type="button", value="",
-                class_="login-button eightbit-btn--proceed pixel-corners-hard--wrapper"
-            )
-            with ui.html(input_html) as login_button:
-                pass
-
-        with ui.element("div") as side_right:
-            side_right.classes("right-info pixel-corners-hard")
-
-            with ui.markdown("Echte Texte sind <ins>nicht</ins>") as left_header:
-                left_header.classes("flanks-title")
-
-            good_markers = sorted(
-                self.callbacks.least_successful_markers(7, 10),
-                key=lambda x: x[1], reverse=True
-            )
-            with ui.element("div") as markers:
-                markers.classes("markers")
-                for i, (each_marker, each_score) in enumerate(good_markers):
-                    with ui.label(each_marker) as each_indicator_label:
-                        each_indicator_label.classes("indicator")
-
-    def _render_title(self) -> None:
-        with ui.element("div") as outer:
-            outer.classes("game-title pixel-corners-soft")
-
-            with ui.element("header") as header:
-                title = ui.label("Spot The Bot")
-
-            with ui.element("div") as game_subtitle:
-                game_subtitle.classes("game-subtitle")
-                subtitle = ui.label("Mensch oder Maschine?")
-
-    def _render_footer(self):
-        with ui.element("div") as line:
-            line.classes("dashed-line")
-
-        with ui.label("Footer") as subheader:
-            subheader.classes("welcome")
-
-    def _render_friends_gallery(self) -> None:
-        with ui.element("div") as line:
-            line.classes("dashed-line")
-
-        # --- friends start
-        with ui.element("div") as subheader:
-            subheader.classes("welcome")
-            ui.label("KollegInnen")
-
-        with ui.element("section") as friends_gallery:
-            friends_gallery.classes("friends-gallery")
-
-            if self.user is not None:
-                friends = self.callbacks.get_friends(self.user.db_id)
-                for each_friend in friends:
-                    with ui.element("div") as friend:
-                        friend.classes("friend pixel-corners-hard--wrapper")
-                        with ui.image(f"assets/images/portraits/{each_friend.face.source_id}-2.png") as image:
-                            image.classes("friend-avatar")
-
-                        with ui.label(each_friend.name) as name:
-                            name.classes("friend-name")
-
-                        with ui.label(f"Wins: {10}") as friend_stats:
-                            friend_stats.classes("friend-stats")
-
-            with ui.element("div") as friend:
-                friend.classes("friend add-friend pixel-corners-hard--wrapper")
-                with ui.image("assets/images/portraits/add_friend.png") as image:
-                    image.classes("friend-avatar")
-
-                with ui.label("Freund einladen") as name:
-                    name.classes("friend-name")
-
-                with ui.label("(hier klicken)") as friend_stats:
-                    friend_stats.classes("friend-stats")
-
-            # friend.on("click", lambda e: ui.notify("Not implemented yet"))
-            friend.on("click", self._invite)

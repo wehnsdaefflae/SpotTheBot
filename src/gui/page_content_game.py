@@ -13,6 +13,11 @@ from src.gui.tools import get_from_local_storage
 class GameContent(ContentPage):
     def __init__(self, client: Client, callbacks: ViewCallbacks) -> None:
         super().__init__(client, callbacks)
+        # richtig erkannt: bot correctly identified as bot: true positives / positives
+        # falsch erkannt: human incorrectly identified as bot: false positives / negatives
+        self.trues = self.falses = 0
+        self.true_positives = self.false_positives = 0
+
         self.points = self.max_points = 25
         self.text_points = None
         self.submit_human = "I am sure it is fine..."
@@ -67,6 +72,12 @@ class GameContent(ContentPage):
             how_true = points * (int(correct) * 2 - 1)
             self.callbacks.update_user_state(self.user, interactive_text.snippet.is_bot, how_true, self.max_points)
 
+            self.trues += int(interactive_text.snippet.is_bot)
+            self.falses += int(not interactive_text.snippet.is_bot)
+
+            self.true_positives += int(interactive_text.snippet.is_bot and correct)
+            self.false_positives += int(not interactive_text.snippet.is_bot and not correct)
+
             tags = interactive_text.selected_tags
 
             base_truth = "BOT" if interactive_text.snippet.is_bot else "HUMAN"
@@ -82,7 +93,7 @@ class GameContent(ContentPage):
             )
 
         if selection == "continue":
-            ui.open("/game")
+            interactive_text.update_content()
             self.callbacks.set_user_penalty(self.user, False)
             logger.info("no penalty")
 
@@ -116,81 +127,28 @@ class GameContent(ContentPage):
         word_count = len(snippet.text.split())
         max_points = word_count // 4
 
+        header_classes = "text-2xl font-semibold text-center py-2 "
+
         with ui.element("div") as main_container:
-            main_container.classes("container pixel-corners-soft")
+            main_container.classes("mx-8 ")
             header = ui.label("Finde Hinweise auf KI!")
-            header.classes("header")
+            header.classes(header_classes)
 
-            ui.element("div").classes("dashed-line")
+            interactive_text = InteractiveText(max_points, lambda: self.callbacks.get_next_snippet(self.user))
+            interactive_text.generate_content()
+            interactive_text.update_content()
 
-            interactive_text = InteractiveText(snippet, max_points)
+            # self.user.state
+            # get success from submit target
+            with ui.row() as stats_row:
+                stats_row.classes("flex justify-between ")
+                text_paranoid = ui.markdown(f"RICHTIG erkannt: {self.true_positives} / {self.trues}")
+                text_gullible = ui.markdown(f"FALSCH erkannt: {self.false_positives} / {self.falses}")
 
-            text_display = interactive_text.get_content()
-
-            # retrieve stats
-            text_paranoid = ui.markdown("RICHTIG erkannt: 3/5")
-            text_paranoid.classes("stats")
-            text_paranoid.style("grid-column: 1 / 2;")
             submit_button = ui.button(
                 self.submit_human,
                 on_click=lambda: self._submit(interactive_text, self.points, penalize)
             )
-            submit_button.classes("submit eightbit-btn")
-            submit_button.style("grid-column: 2 / 5;")
-            text_gullible = ui.markdown("FALSCH erkannt: 6/7")
-            text_gullible.classes("stats")
-            text_gullible.style("grid-column: 5 / 6;")
+            submit_button.classes("submit w-full ")
 
             self._init_javascript(f"c{submit_button.id}")
-
-    async def _create_content(self) -> None:
-        ui.add_head_html("<link rel=\"stylesheet\" type=\"text/css\" href=\"assets/styles/game.css\">")
-
-        logger.info("Game page")
-
-        await self.client.connected()
-        name_hash = await get_from_local_storage("name_hash")
-        if name_hash is None:
-            logger.warning("No name hash found, returning to start page.")
-            ui.open("/")
-            return
-
-        self.user = self.callbacks.get_user(name_hash)
-        penalize = self.user.penalty
-        logger.info(f"This round penalty: {penalize}")
-
-        self.callbacks.set_user_penalty(self.user, True)
-        logger.info("Setting penalty.")
-
-        snippet = self.callbacks.get_next_snippet(self.user)
-
-        word_count = len(snippet.text.split())
-        max_points = word_count // 4
-
-        with ui.element("div") as main_container:
-            main_container.classes("container pixel-corners-soft")
-            header = ui.label("Finde Hinweise auf KI!")
-            header.classes("header")
-
-            ui.element("div").classes("dashed-line")
-
-            interactive_text = InteractiveText(snippet, max_points)
-
-            text_display = interactive_text.get_content()
-
-            # retrieve stats
-            text_paranoid = ui.markdown("RICHTIG erkannt: 3/5")
-            text_paranoid.classes("stats")
-            text_paranoid.style("grid-column: 1 / 2;")
-            submit_button = ui.button(
-                self.submit_human,
-                on_click=lambda: self._submit(interactive_text, self.points, penalize)
-            )
-            submit_button.classes("submit eightbit-btn")
-            submit_button.style("grid-column: 2 / 5;")
-            text_gullible = ui.markdown("FALSCH erkannt: 6/7")
-            text_gullible.classes("stats")
-            text_gullible.style("grid-column: 5 / 6;")
-
-            self._init_javascript(f"c{submit_button.id}")
-
