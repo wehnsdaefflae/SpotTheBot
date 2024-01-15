@@ -1,5 +1,6 @@
+import re
 import time
-from typing import Generator
+from typing import Generator, Collection
 
 import openai
 from loguru import logger
@@ -67,3 +68,69 @@ class PromptOpenAI:
 
         logger.info(reply)
         return reply.strip()
+
+
+
+def extract_code_blocks(text: str, code_type: str = "") -> tuple[str, ...]:
+    """
+    Extracts all code blocks that contain the specified keyword from a string using regular expressions.
+
+    :param text: The string to search within.
+    :param code_type: The optional keyword to filter the code blocks.
+    :return: A list of strings, each representing a found code block.
+    """
+    # If a code type is specified, include it in the pattern
+    if code_type:
+        pattern = r"```" + re.escape(code_type) + r"\n(.*?)\n```"
+    else:
+        pattern = r"```(.*?)\n```"
+    matches = re.findall(pattern, text, re.DOTALL)
+    return tuple(match.strip() for match in matches)
+
+
+async def get_fake_comments(
+        open_ai: PromptOpenAI, comments: Collection[str],
+        output_comments: int = 3) -> Collection[str]:
+
+    len_comments = len(comments)
+    if output_comments >= len_comments:
+        raise ValueError(f"`output_comments` must be smaller than the number of `comments`.")
+
+    fenced_examples = (
+        (
+            f"```json\n"
+            f"{each_comment.strip()}\n"
+            f"```\n"
+        ) for each_comment in comments)
+
+    examples = "\n".join(fenced_examples)
+    prompt = (
+        f"{examples}"
+        f"\n"
+        f"Generate {output_comments} JSON objects based on the examples above. Make sure to include all keys present "
+        f"in the examples. Generate values indistinguishable in form, style, and content. Use the "
+        f"same language as the examples. Do not copy segments from the examples or the examples themselves.\n"
+        f"\n"
+        f"IMPORTANT: Incorporate typos and factual errors similar to the ones present in the examples. Write in a "
+        f"style that is characteristic for YouTube comments, including inconsistent spaces and capitalization, typos, "
+        f"abbreviations, emojis, and occasional references to video time stamps.\n"
+        f"\n"
+        f"Wrap each of the {output_comments} generated JSON objects in a fenced JSON code block according to the "
+        f"following pattern:\n"
+        f"```json\n"
+        f"[first object]\n"
+        f"```\n"
+        f"\n"
+        f"```json\n"
+        f"[second object]\n"
+        f"```\n"
+        f"\n"
+        f"```json\n"
+        f"[third object]\n"
+        f"```\n"
+        f"[...]"
+    )
+
+    open_ai_response = await open_ai.reply_to_prompt(prompt)
+    fake_comments = extract_code_blocks(open_ai_response, code_type="json")
+    return fake_comments
