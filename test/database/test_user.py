@@ -3,8 +3,8 @@ import unittest
 
 from loguru import logger
 
-from database.user_manager import UserManager
-from dataobjects import Face
+from src.database.user_manager import UserManager
+from src.dataobjects import Face
 
 
 class TestUsers(unittest.TestCase):
