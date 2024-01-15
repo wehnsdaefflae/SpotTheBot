@@ -8,7 +8,7 @@ from redis import Redis
 from loguru import logger
 from redis.client import Pipeline
 
-from src.dataobjects import State, Friend, User, Face
+from src.dataobjects import Friend, User, Face
 
 
 class UserManager:
@@ -46,8 +46,10 @@ class UserManager:
             "public_name":          public_name,
             "penalty":              int(user.penalty),
             "face":                 face.source_id,
-            "precision":            user.state.precision,
-            "specificity":          user.state.specificity,
+            "true_positives":       float(user.true_positives),
+            "true_negatives":       float(user.true_negatives),
+            "false_positives":      float(user.false_positives),
+            "false_negatives":      float(user.false_negatives),
             "db_id":                user_id,
             "invited_by_user_id":   invited_by_user_id,
             "created_at":           user.created_at,
@@ -73,7 +75,11 @@ class UserManager:
             for key, value in result.items()
         }
 
-        state = State(data.pop("precision"), data.pop("specificity"))
+        true_positives = float(data.pop("true_positives"))
+        true_negatives = float(data.pop("true_negatives"))
+        false_positives = float(data.pop("false_positives"))
+        false_negatives = float(data.pop("false_negatives"))
+
         face = Face(data.pop("face"))
         recent_snippet_ids = json.loads(data.pop("recent_snippet_ids"))
         user = User(
@@ -81,7 +87,10 @@ class UserManager:
             public_name=data.pop("public_name"),
             penalty=bool(int(data.pop("penalty"))),
             face=face,
-            state=state,
+            true_positives=true_positives,
+            true_negatives=true_negatives,
+            false_positives=false_positives,
+            false_negatives=false_negatives,
             db_id=user_id,
             invited_by_user_id=data.pop("invited_by_user_id"),
             created_at=data.pop("created_at"),
@@ -169,10 +178,20 @@ class UserManager:
 
             face_id = self.redis.hget(friend_key, "face")
             public_name = self.redis.hget(friend_key, "public_name")
+            false_positives = float(self.redis.hget(friend_key, "false_positives"))
+            true_positives = float(self.redis.hget(friend_key, "true_positives"))
+            false_negatives = float(self.redis.hget(friend_key, "false_negatives"))
+            true_negatives = float(self.redis.hget(friend_key, "true_negatives"))
+            positives = false_positives + true_positives
+            negatives = false_negatives + true_negatives
+            anger = 0. if 0 >= positives else false_positives / positives
+            sadness = 0. if 0 >= negatives else false_negatives / negatives
             each_friend = Friend(
                 db_id=int(each_friend_id),
                 name=public_name.decode(),
-                face=Face(face_id.decode())
+                face=Face(face_id.decode()),
+                anger=anger,
+                sadness=sadness,
             )
             friends.add(each_friend)
 
@@ -186,42 +205,17 @@ class UserManager:
 
         self._reset_user_expiration(user_key)
 
-    def update_user_state(self, user: User, is_positive: bool, how_true: int, max_value: int) -> None:
+    def update_user_state(self, user: User,
+                          true_positive: float, false_positive: float,
+                          true_negative: float, false_negative: float) -> None:
+
         user_key = f"user:{user.db_id}"
 
-        if is_positive and how_true >= 0:
-            precision = float(self.redis.hget(user_key, "precision") or 0.)
-            logger.debug(f"precision = (precision * (max_value - how_true) + (1. * how_true)) / max_value")
-            logger.debug(f"precision = ({precision} * ({max_value} - {how_true}) + (1. * {how_true})) / {max_value}")
-            self.redis.hset(user_key, mapping={
-                "precision": (precision * (max_value - how_true) + (1. * how_true)) / max_value,
-            })
-
-        elif is_positive and how_true < 0:
-            precision = float(self.redis.hget(user_key, "precision") or 0.)
-            logger.debug(f"precision = (precision * (max_value + how_true)) / max_value")
-            logger.debug(f"precision = ({precision} * ({max_value} + {how_true})) / {max_value}")
-            self.redis.hset(user_key, mapping={
-                "precision": (precision * (max_value + how_true)) / max_value,
-            })
-
-        elif not is_positive and how_true >= 0:
-            specificity = float(self.redis.hget(user_key, "specificity") or 0.)
-            logger.debug(f"specificity = (specificity * (max_value - how_true) + (1. * how_true)) / max_value")
-            logger.debug(f"specificity = ({specificity} * ({max_value} - {how_true}) + (1. * {how_true})) / {max_value}")
-            self.redis.hset(user_key, mapping={
-                "specificity": (specificity * (max_value - how_true) + (1. * how_true)) / max_value
-            })
-
-        elif not is_positive and how_true < 0:
-            specificity = float(self.redis.hget(user_key, "specificity") or 0.)
-            logger.debug(f"specificity = (specificity * (max_value + how_true)) / max_value")
-            logger.debug(f"specificity = ({specificity} * ({max_value} + {how_true})) / {max_value}")
-            self.redis.hset(user_key, mapping={
-                "specificity": (specificity * (max_value + how_true)) / max_value
-            })
-
         self.redis.hset(user_key, mapping={
+            "true_positives": true_positive,
+            "false_positives": false_positive,
+            "true_negatives": true_negative,
+            "false_negatives": false_negative,
             "penalty": 0
         })
 

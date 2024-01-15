@@ -2,7 +2,6 @@ import dataclasses
 import random
 import time
 from collections import deque, Counter
-from enum import Enum
 from typing import Callable
 
 
@@ -17,16 +16,12 @@ class Face:
 
 
 @dataclasses.dataclass(frozen=True)
-class State:
-    precision: float = .5    # tp / (tp + fp), opposite: gullible fp / (tp + fp)
-    specificity: float = .5  # tn / (tn + fp), opposite: paranoid fp / (tn + fp)
-
-
-@dataclasses.dataclass(frozen=True)
 class Friend:
     db_id: int
     name: str
     face: Face
+    anger: float
+    sadness: float
 
 
 @dataclasses.dataclass(frozen=True)
@@ -37,7 +32,11 @@ class User:
     penalty: bool = False
 
     face: Face = dataclasses.field(default_factory=Face)
-    state: State = dataclasses.field(default_factory=State)
+    true_positives: float = 0
+    true_negatives: float = 0
+    false_positives: float = 0
+    false_negatives: float = 0
+
     db_id: int = -1
     invited_by_user_id: int = -1
     created_at: int = dataclasses.field(default_factory=lambda: int(time.time()))
@@ -54,19 +53,12 @@ class Snippet:
     db_id: int = -1
 
 
-class Field(Enum):
-    FALSE_POSITIVES = "false_positives"
-    FALSE_NEGATIVES = "false_negatives"
-    TRUE_POSITIVES = "true_positives"
-    TRUE_NEGATIVES = "true_negatives"
-
-
 @dataclasses.dataclass(frozen=True)
 class ViewCallbacks:
     get_user: Callable[[str], User | None]
     create_user: Callable[[str, Face, str, int], User]
     get_next_snippet: Callable[[User], Snippet]
-    update_user_state: Callable[[User, bool, int, int], None]
+    update_user_state: Callable[[User, float, float, float, float], None]
     update_markers: Callable[[Counter, bool], None]
     most_successful_markers: Callable[[int, int], set[tuple[str, float]]]
     least_successful_markers: Callable[[int, int], set[tuple[str, float]]]

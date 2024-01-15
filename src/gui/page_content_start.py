@@ -233,7 +233,20 @@ class StartContent(ContentPage):
                 with ui.element("div").classes(
                         "flex place-content-center "
                         "md:col-span-1 relative w-full order-first md:order-none mb-4 md:mb-0 "):
-                    with ui.image(f"assets/images/portraits/{self.face.source_id}-2.png").classes(
+                    state = "2"  # 2 happy, 0 sad, 1 angry
+
+                    if self.user is not None:
+                        positives = self.user.true_positives + self.user.false_negatives
+                        negatives = self.user.false_positives + self.user.true_negatives
+                        false_negative_rate = 0. if 0 >= positives else self.user.false_negatives / positives
+                        false_positive_rate = 0. if 0 >= negatives else self.user.false_positives / negatives
+
+                        if false_negative_rate >= .2 and false_negative_rate >= false_positive_rate:
+                            state = "0"
+                        elif false_positive_rate >= .2 and false_positive_rate >= false_negative_rate:
+                            state = "1"
+
+                    with ui.image(f"assets/images/portraits/{self.face.source_id}-{state}.png").classes(
                             "w-64 rounded z-0 ").style("image-rendering: pixelated;"):
                         pass
                     with ui.button().classes("absolute bottom-5 left-1/2 transform -translate-x-1/2 w-32 z-50 ").props("id=\"buttonid\"") as login_button:
@@ -276,7 +289,13 @@ class StartContent(ContentPage):
                     "p-4 my-2 bg-indigo-200 rounded grid grid-cols-4 gap-4 justify-items-center"):
                 for each_friend in friends:
                     with ui.element("div").classes("w-20 md:w-40 rounded ") as friend:
-                        with ui.image(f"assets/images/portraits/{each_friend.face.source_id}-2.png") as image:
+                        state = "2"  # 2 happy, 0 sad, 1 angry
+                        if each_friend.anger >= .2 and each_friend.anger >= each_friend.sadness:
+                            state = "1"
+                        elif each_friend.sadness >= .2 and each_friend.sadness >= each_friend.anger:
+                            state = "0"
+
+                        with ui.image(f"assets/images/portraits/{each_friend.face.source_id}-{state}.png") as image:
                             pass
 
                         with ui.label(each_friend.name) as name:

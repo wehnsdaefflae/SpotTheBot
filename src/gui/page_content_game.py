@@ -15,10 +15,11 @@ class GameContent(ContentPage):
         super().__init__(client, callbacks)
         # richtig erkannt: bot correctly identified as bot: true positives / positives
         # falsch erkannt: human incorrectly identified as bot: false positives / negatives
-        self.trues = self.falses = 0
-        self.true_positives = self.false_positives = 0
+        self.true_positives = self.false_positives = self.true_negatives = self.false_negatives = 0
+        self.actually_positive = self.actually_negative = 0
 
-        self.points = self.max_points = 25
+        self.timer: ui.timer | None = None
+        self.points = self.max_points = -1
         self.text_points = None
         self.submit_human = "I am sure it is fine..."
         self.submit_bot = "It is a bot!"
@@ -51,24 +52,57 @@ class GameContent(ContentPage):
         )
         _ = ui.run_javascript("\n".join(init_js))
 
-    async def _submit(self, interactive_text: InteractiveText, points: int) -> None:
+    async def _submit(self, interactive_text: InteractiveText) -> None:
         identity_file = await get_from_local_storage("identity_file")
         if identity_file is not None and os.path.isfile(identity_file):
             os.remove(identity_file)
 
-        correct = interactive_text.snippet.is_bot == (0 < len(interactive_text.selected_tags))
+        positive = len(interactive_text.selected_tags) >= 1
+        true = interactive_text.snippet.is_bot == positive
+        if interactive_text.snippet.is_bot:
+            self.actually_positive += 1
+        else:
+            self.actually_negative += 1
 
         snippet_id = interactive_text.snippet.db_id
         self.user.recent_snippet_ids.append(snippet_id)
 
-        how_true = points * (int(correct) * 2 - 1)
-        self.callbacks.update_user_state(self.user, interactive_text.snippet.is_bot, how_true, self.max_points)
+        true_positive_value = int(true and positive)
+        false_positive_value = int(not true and positive)
+        true_negative_value = int(true and not positive)
+        false_negative_value = int(not true and not positive)
 
-        self.trues += int(interactive_text.snippet.is_bot)
-        self.falses += int(not interactive_text.snippet.is_bot)
+        last_tp = self.user.true_positives
+        last_fp = self.user.false_positives
+        last_tn = self.user.true_negatives
+        last_fn = self.user.false_negatives
 
-        self.true_positives += int(interactive_text.snippet.is_bot and correct)
-        self.false_positives += int(not interactive_text.snippet.is_bot and not correct)
+        true_positive_scaled = (
+                true_positive_value * self.points + (last_tp * (self.max_points - self.points))
+                / self.max_points
+        )
+        false_positive_scaled = (
+                false_positive_value * self.points + (last_fp * (self.max_points - self.points))
+                / self.max_points
+        )
+        true_negative_scaled = (
+                true_negative_value * self.points + (last_tn * (self.max_points - self.points))
+                / self.max_points
+        )
+        false_negative_scaled = (
+                false_negative_value * self.points + (last_fn * (self.max_points - self.points))
+                / self.max_points
+        )
+
+        self.callbacks.update_user_state(
+            self.user, true_positive_scaled, false_positive_scaled, true_negative_scaled, false_negative_scaled
+        )
+
+        self.true_positives += true_positive_value
+        self.false_positives += false_positive_value
+
+        self.true_negatives += true_negative_value
+        self.false_negatives += false_negative_value
 
         tags = interactive_text.selected_tags
 
@@ -76,16 +110,20 @@ class GameContent(ContentPage):
         classification = "HUMAN" if len(tags) < 1 else "BOT"
 
         if len(tags) >= 1:
-            self.callbacks.update_markers(tags, correct)
+            self.callbacks.update_markers(tags, true)
 
         selection = await result_dialog(
             f"{self.user.public_name} classified {base_truth} text "
             f"{interactive_text.snippet.db_id} as {classification} "
-            f"with {points} points certainty of {self.max_points} total."
+            f"with {self.points} points certainty of {self.max_points} total."
         )
 
         if selection == "continue":
             interactive_text.update_content()
+            await interactive_text.reset_tagged_word_count()
+            snippet = interactive_text.snippet
+            word_count = len(snippet.text.split())
+            self.points = word_count // 4
             self.callbacks.set_user_penalty(self.user, False)
             logger.info("no penalty")
 
@@ -112,19 +150,15 @@ class GameContent(ContentPage):
         logger.info(f"This round penalty: {penalize}")
 
         if penalize:
-            self.callbacks.update_user_state(self.user, True, -5, 10)
-            self.callbacks.update_user_state(self.user, False, -5, 10)
+            false_positives = self.user.false_positives + 5.
+            false_negatives = self.user.false_negatives + 5.
+            self.callbacks.update_user_state(self.user, 0, false_positives, 0, false_negatives)
 
             selection = await info_dialog("PENALIZED!")
 
         else:
             self.callbacks.set_user_penalty(self.user, True)
             logger.info("Setting penalty.")
-
-        snippet = self.callbacks.get_next_snippet(self.user)
-
-        word_count = len(snippet.text.split())
-        max_points = word_count // 4
 
         header_classes = "text-2xl font-semibold text-center py-2 "
 
@@ -133,29 +167,68 @@ class GameContent(ContentPage):
             header = ui.label("Finde Hinweise auf KI!")
             header.classes(header_classes)
 
-            interactive_text = InteractiveText(max_points, lambda: self.callbacks.get_next_snippet(self.user))
+            interactive_text = InteractiveText(lambda: self.callbacks.get_next_snippet(self.user))
             interactive_text.generate_content()
             interactive_text.update_content()
 
-            with ui.row() as stats_row:
-                stats_row.classes("flex justify-between ")
-                with ui.row():
-                    ui.label("RICHTIG erkannt: ")
-                    ui.label().bind_text(self, "true_positives")
-                    ui.label("/")
-                    ui.label().bind_text(self, "trues")
-                    ui.label("Bots")
+            snippet = interactive_text.snippet
+            word_count = len(snippet.text.split())
+            self.points = word_count // 4
 
-                with ui.row():
-                    ui.label("FALSCH erkannt: ")
-                    ui.label().bind_text(self, "false_positives")
-                    ui.label("/")
-                    ui.label().bind_text(self, "falses")
-                    ui.label("Menschen")
+            def _decrement_points() -> None:
+                if 5 < self.points:
+                    self.points -= 1
+                else:
+                    self.timer.deactivate()
+
+            with ui.row() as points:
+                points.classes("flex justify-center text-base ")
+                point_text = ui.label().bind_text(self, "points")
+                self.text_points = ui.label(" Punkte übrig")
+
+            self.timer = ui.timer(1, _decrement_points)
+
+            with ui.row() as stats_row:
+                stats_row.classes("flex justify-around ")
+                with ui.column() as col:
+                    ui.label("Falsch erkannt: ")
+                    with ui.row():
+                        ui.label().bind_text(self, "false_negatives")
+                        ui.label("/")
+                        ui.label().bind_text(self, "actually_positive")
+                        ui.label("Bots")
+
+                    with ui.row():
+                        ui.label().bind_text(self, "false_positives")
+                        ui.label("/")
+                        ui.label().bind_text(self, "actually_negative")
+                        ui.label("Menschen")
+
+                with ui.element("div").classes("w-20 md:w-40 rounded ") as avatar_container:
+                    state = "2"  # 2 happy, 0 sad, 1 angry
+                    false_negative_rate = 0. if 0 >= self.actually_positive else self.false_negatives / self.actually_positive
+                    false_positive_rate = 0. if 0 >= self.actually_negative else self.false_positives / self.actually_negative
+
+                    if false_positive_rate >= .2 and false_positive_rate >= false_negative_rate:
+                        state = "1"
+                    elif false_negative_rate >= .2 and false_negative_rate >= false_positive_rate:
+                        state = "0"
+
+                    with ui.image(f"assets/images/portraits/{self.user.face.source_id}-{state}.png") as image:
+                        pass
+
+                    emotion = "kompetent :D"
+                    if state == "0":
+                        emotion = "naiv :.-("
+                    elif state == "1":
+                        emotion = "skrupellos D-:<"
+                    with ui.label(f"{emotion}") as name:
+                        name.classes("text-center text-base ")
+                        pass
 
             submit_button = ui.button(
                 self.submit_human,
-                on_click=lambda: self._submit(interactive_text, self.points)
+                on_click=lambda: self._submit(interactive_text)
             )
             submit_button.classes("submit w-full ")
 

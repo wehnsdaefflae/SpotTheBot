@@ -10,32 +10,20 @@ from src.gui.tools import colorize
 
 
 class InteractiveText:
-    def __init__(self, max_points: int, get_snippet: Callable[[], Snippet]):
+    def __init__(self, get_snippet: Callable[[], Snippet]):
         self.get_snippet = get_snippet
         self.snippet: Snippet | None = None
 
         self.signs_dict = get_signs()
         self.colorized_signs = colorize(self.signs_dict)
         self.legend_tags = dict()
-        self.timer = None
 
         self._source_content = ""
         self._text_content: ui.column | None = None
 
-        self.max_points = self.points = max_points
-        self.text_points: ui.label | None = None
-
         self.legend = None
 
         self.selected_tags = Counter()
-
-    def _decrement_points(self) -> None:
-        if 5 < self.points:
-            self.points -= 1
-        else:
-            self.timer.deactivate()
-
-        self.text_points.content = f"{self.points} points remaining"
 
     def _update_snippet_text(self, text: str) -> None:
         self._text_content.clear()
@@ -57,7 +45,6 @@ class InteractiveText:
 
     def update_content(self) -> None:
         self.snippet = self.get_snippet()
-        self.reset_tagged_word_count()
         self._source_content = self.snippet.source
         # todo: replace with link to video
         self._update_snippet_text(self.snippet.text)
@@ -88,11 +75,6 @@ class InteractiveText:
                     self.legend_tags[each_tag] = each_label
                     each_label.set_visibility(False)
 
-        with ui.element("div") as points:
-            points.classes("text-center text-base ")
-            self.text_points = ui.markdown(f"{self.points} points remaining")
-
-        self.timer = ui.timer(1, self._decrement_points)
         return main_column
 
     async def _click_event(self, word_label: ui.label) -> None:
