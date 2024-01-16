@@ -107,6 +107,8 @@ async def main() -> None:
     openai_config = config["openai"]
     prompt_openai = PromptOpenAI(openai_config)
 
+    # todo: request in parallel
+
     iterations = int(math.ceil(no_auth_comments / 3))
     for i in range(iterations):
         print(f"Generating fake comments {i + 1} / {iterations}")
