@@ -1,29 +1,176 @@
+from __future__ import annotations
 import os
+import dataclasses
 
 from loguru import logger
 from nicegui import ui, Client
 
-from src.dataobjects import ViewCallbacks
+from src.dataobjects import ViewCallbacks, User
 from src.gui.elements.content_class import ContentPage
 from src.gui.elements.dialogs import result_dialog, info_dialog
 from src.gui.elements.interactive_text import InteractiveText
 from src.gui.tools import get_from_local_storage
 
 
+@dataclasses.dataclass
+class BinaryStats:
+    true_positives: float = 0.
+    true_negatives: float = 0.
+    false_positives: float = 0.
+    false_negatives: float = 0.
+
+    def clear(self) -> None:
+        self.true_positives = 0.
+        self.true_negatives = 0.
+        self.false_positives = 0.
+        self.false_negatives = 0.
+
+    @property
+    def actually_positive(self) -> float:
+        return self.true_positives + self.false_negatives
+
+    @property
+    def actually_negative(self) -> float:
+        return self.true_negatives + self.false_positives
+
+    @property
+    def classified_positive(self) -> float:
+        return self.true_positives + self.false_positives
+
+    @property
+    def classified_negative(self) -> float:
+        return self.true_negatives + self.false_negatives
+
+    @property
+    def total(self) -> float:
+        return self.actually_positive + self.actually_negative
+
+    @property
+    def accuracy(self) -> float:
+        if 0. >= self.total:
+            return 0.
+        return (self.true_positives + self.true_negatives) / self.total
+
+    @property
+    def precision(self) -> float:
+        if 0. >= self.classified_positive:
+            return 0.
+        return self.true_positives / self.classified_positive
+
+    @property
+    def recall(self) -> float:
+        if 0. >= self.actually_positive:
+            return 0.
+        return self.true_positives / self.actually_positive
+
+    @property
+    def true_positive_rate(self) -> float:
+        if 0. >= self.actually_positive:
+            return 0.
+        return self.true_positives / self.actually_positive
+
+    @property
+    def true_negative_rate(self) -> float:
+        if 0. >= self.actually_negative:
+            return 0.
+        return self.true_negatives / self.actually_negative
+
+    @property
+    def false_positive_rate(self) -> float:
+        if 0. >= self.actually_negative:
+            return 0.
+        return self.false_positives / self.actually_negative
+
+    @property
+    def false_negative_rate(self) -> float:
+        if 0. >= self.actually_positive:
+            return 0.
+        return self.false_negatives / self.actually_positive
+
+    @property
+    def f1(self) -> float:
+        precision_plus_recall = self.precision + self.recall
+        if 0. >= precision_plus_recall:
+            return 0.
+        return 2. * self.precision * self.recall / precision_plus_recall
+
+    def __str__(self) -> str:
+        return (
+            f"tp: {self.true_positives:.2f}, "
+            f"tn: {self.true_negatives:.2f}, "
+            f"fp: {self.false_positives:.2f}, "
+            f"fn: {self.false_negatives:.2f}"
+        )
+
+    def __add__(self, other: BinaryStats) -> BinaryStats:
+        return BinaryStats(
+            self.true_positives + other.true_positives,
+            self.true_negatives + other.true_negatives,
+            self.false_positives + other.false_positives,
+            self.false_negatives + other.false_negatives
+        )
+
+    def __iadd__(self, other: BinaryStats) -> BinaryStats:
+        self.true_positives += other.true_positives
+        self.true_negatives += other.true_negatives
+        self.false_positives += other.false_positives
+        self.false_negatives += other.false_negatives
+        return self
+
+    def __mul__(self, other: float) -> BinaryStats:
+        return BinaryStats(
+            self.true_positives * other,
+            self.true_negatives * other,
+            self.false_positives * other,
+            self.false_negatives * other
+        )
+
+    def __imul__(self, other: float) -> BinaryStats:
+        self.true_positives *= other
+        self.true_negatives *= other
+        self.false_positives *= other
+        self.false_negatives *= other
+        return self
+
+    def __rmul__(self, other: float) -> BinaryStats:
+        return self * other
+
+    def __truediv__(self, other: float) -> BinaryStats:
+        return BinaryStats(
+            self.true_positives / other,
+            self.true_negatives / other,
+            self.false_positives / other,
+            self.false_negatives / other
+        )
+
+    def __itruediv__(self, other: float) -> BinaryStats:
+        self.true_positives /= other
+        self.true_negatives /= other
+        self.false_positives /= other
+        self.false_negatives /= other
+        return self
+
+    def __rtruediv__(self, other: float) -> BinaryStats:
+        return self / other
+
+
 class GameContent(ContentPage):
     def __init__(self, client: Client, callbacks: ViewCallbacks) -> None:
         super().__init__(client, callbacks)
-        # richtig erkannt: bot correctly identified as bot: true positives / positives
-        # falsch erkannt: human incorrectly identified as bot: false positives / negatives
-        self.true_positives = self.false_positives = self.true_negatives = self.false_negatives = 0
-        self.actually_positive = self.actually_negative = 0
+        self.binary_stats_session = BinaryStats()
 
-        self.timer: ui.timer | None = None
-        self.points = self.max_points = -1
-        self.text_points = None
         self.submit_human = "I am sure it is fine..."
         self.submit_bot = "It is a bot!"
-        self.user = None
+
+        self.min_points = 5
+        self.points = self.max_points = -1
+
+        self.avatar_container: ui.element | None = None
+
+        self.interactive_text: InteractiveText | None = None
+
+        self.timer: ui.timer = ui.timer(1, self._decrement_points, active=False)
+        self.user: User | None = None
 
     def _init_javascript(self, button_id: str) -> None:
         init_js = (
@@ -52,79 +199,156 @@ class GameContent(ContentPage):
         )
         _ = ui.run_javascript("\n".join(init_js))
 
-    async def _submit(self, interactive_text: InteractiveText) -> None:
-        identity_file = await get_from_local_storage("identity_file")
-        if identity_file is not None and os.path.isfile(identity_file):
-            os.remove(identity_file)
+    def _decrement_points(self) -> None:
+        if self.min_points < self.points:
+            self.progress_bar.style(
+                f"width: {(self.points - 0) / (self.max_points - 0) * 100:.0f}%;")
+            self.points -= 1
+            self.progress_bar.classes("bg-yellow-500 ")
 
-        positive = len(interactive_text.selected_tags) >= 1
-        true = interactive_text.snippet.is_bot == positive
-        if interactive_text.snippet.is_bot:
-            self.actually_positive += 1
         else:
-            self.actually_negative += 1
+            self.progress_bar.classes("bg-red-500 ")
 
-        snippet_id = interactive_text.snippet.db_id
-        self.user.recent_snippet_ids.append(snippet_id)
+        print(f"{self.points} points")
+        print(f"{self.max_points} max_points")
 
-        true_positive_value = int(true and positive)
-        false_positive_value = int(not true and positive)
-        true_negative_value = int(true and not positive)
-        false_negative_value = int(not true and not positive)
+    async def _check_user(self) -> None:
+        name_hash = await get_from_local_storage("name_hash")
+        if name_hash is None:
+            logger.warning("No name hash found, returning to start page.")
+            ui.open("/")
+            return
 
-        last_tp = self.user.true_positives
-        last_fp = self.user.false_positives
-        last_tn = self.user.true_negatives
-        last_fn = self.user.false_negatives
+        self.user = self.callbacks.get_user(name_hash)
 
-        true_positive_scaled = (
-                true_positive_value * self.points + (last_tp * (self.max_points - self.points))
-                / self.max_points
-        )
-        false_positive_scaled = (
-                false_positive_value * self.points + (last_fp * (self.max_points - self.points))
-                / self.max_points
-        )
-        true_negative_scaled = (
-                true_negative_value * self.points + (last_tn * (self.max_points - self.points))
-                / self.max_points
-        )
-        false_negative_scaled = (
-                false_negative_value * self.points + (last_fn * (self.max_points - self.points))
-                / self.max_points
-        )
+    async def _apply_penalty(self, user: User) -> None:
+        penalize = user.penalty
+        logger.info(f"This round penalty: {penalize}")
 
-        self.callbacks.update_user_state(
-            self.user, true_positive_scaled, false_positive_scaled, true_negative_scaled, false_negative_scaled
-        )
+        if penalize:
+            false_positives = user.false_positives + 5.
+            false_negatives = user.false_negatives + 5.
+            self.callbacks.update_user_state(user, 0, false_positives, 0, false_negatives)
 
-        self.true_positives += true_positive_value
-        self.false_positives += false_positive_value
+            await info_dialog("PENALIZED!")
 
-        self.true_negatives += true_negative_value
-        self.false_negatives += false_negative_value
+        else:
+            self.callbacks.set_user_penalty(user, True)
+            logger.info("Setting penalty.")
 
-        tags = interactive_text.selected_tags
+    async def _add_text_element(self) -> None:
+        self.interactive_text = InteractiveText(lambda: self.callbacks.get_next_snippet(self.user))
+        self.interactive_text.generate_content()
 
-        base_truth = "BOT" if interactive_text.snippet.is_bot else "HUMAN"
-        classification = "HUMAN" if len(tags) < 1 else "BOT"
+    def _update_text(self) -> None:
+        self.interactive_text.update_content()
+        self.interactive_text.reset_tagged_word_count()
+        snippet = self.interactive_text.snippet
+        word_count = len(snippet.text.split())
+        self.points = self.max_points = word_count // 4
 
-        if len(tags) >= 1:
-            self.callbacks.update_markers(tags, true)
+    def _add_timing(self) -> None:
+        self.timer.activate()
 
+        with ui.column() as points_column:
+            points_column.classes("flex justify-center w-full ")
+            with ui.element("div") as progress_background:
+                progress_background.classes("w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 ")
+                with ui.element("div") as self.progress_bar:
+                    self.progress_bar.classes("bg-green-500 rounded-full h-full ")
+
+            with ui.row() as points:
+                points.classes("flex justify-center text-base w-full ")
+                point_text = ui.label().bind_text(self, "points")
+                self.text_points = ui.label(" Punkte übrig")
+
+    def _add_stats(self) -> None:
+        with ui.row():
+            ui.label().bind_text_from(self.binary_stats_session, "false_negatives")
+            ui.label("/")
+            ui.label().bind_text_from(self.binary_stats_session, "actually_positive")
+            ui.label("Bots")
+
+        with ui.row():
+            ui.label().bind_text_from(self.binary_stats_session, "false_positives")
+            ui.label("/")
+            ui.label().bind_text_from(self.binary_stats_session, "actually_negative")
+            ui.label("Menschen")
+
+    def _add_avatar(self) -> None:
+        state = "2"  # 2 happy, 0 sad, 1 angry
+        if (
+                self.binary_stats_session.false_positive_rate >= .2 and
+                self.binary_stats_session.false_positive_rate >= self.binary_stats_session.false_negative_rate):
+            state = "1"
+        elif (
+                self.binary_stats_session.false_negative_rate >= .2 and
+                self.binary_stats_session.false_negative_rate >= self.binary_stats_session.false_positive_rate):
+            state = "0"
+
+        with ui.image(f"assets/images/portraits/{self.user.face.source_id}-{state}.png") as image:
+            image.style("image-rendering: pixelated;")
+
+        emotion = "ᕕ( ᐛ )ᕗ"
+        if state == "0":
+            emotion = "(◡︵◡)"
+        elif state == "1":
+            emotion = "(╯°□°)╯︵ ┻━┻"
+        with ui.label(f"{emotion}") as name:
+            name.classes("text-center text-base ")
+            pass
+
+    async def create_content(self) -> None:
+        logger.info("Game page")
+
+        await self.client.connected()
+        await self._check_user()
+        await self._apply_penalty(self.user)
+
+        header_classes = "text-2xl font-semibold text-center py-2 "
+
+        with ui.element("div") as main_container:
+            main_container.classes("mx-8 ")
+            header = ui.label("Finde Hinweise auf KI!")
+            header.classes(header_classes)
+
+            await self._add_text_element()
+            self._update_text()
+
+            self._add_timing()
+
+            with ui.row() as stats_row:
+                stats_row.classes("flex justify-around w-full ")
+                with ui.column() as col:
+                    ui.label("Falsch erkannt: ")
+                    self._add_stats()
+
+                with ui.element("div").classes("w-20 md:w-40 rounded ") as self.avatar_container:
+                    self._add_avatar()
+
+            submit_button = ui.button(
+                self.submit_human,
+                on_click=lambda: self._submit(self.interactive_text)
+            )
+            submit_button.classes("submit w-full ")
+
+        self._init_javascript(f"c{submit_button.id}")
+
+    async def _feedback_dialog(
+            self, actually_positive: bool, classified_positive: bool, interactive_text: InteractiveText) -> None:
+        base_truth = "BOT" if actually_positive else "HUMAN"
+        classification = "BOT" if classified_positive else "HUMAN"
         selection = await result_dialog(
             f"{self.user.public_name} classified {base_truth} text "
             f"{interactive_text.snippet.db_id} as {classification} "
             f"with {self.points} points certainty of {self.max_points} total."
         )
-
         if selection == "continue":
-            interactive_text.update_content()
-            await interactive_text.reset_tagged_word_count()
-            snippet = interactive_text.snippet
-            word_count = len(snippet.text.split())
-            self.points = word_count // 4
+            self._update_text()
             self.callbacks.set_user_penalty(self.user, False)
+            self.avatar_container.clear()
+            with self.avatar_container:
+                self._add_avatar()
             logger.info("no penalty")
 
         elif selection == "quit":
@@ -135,101 +359,61 @@ class GameContent(ContentPage):
         else:
             ui.open("/")
 
-    async def create_content(self) -> None:
-        logger.info("Game page")
+    def _update_stats(self, classification: bool, true: bool) -> None:
+        binary_stats_this_round = BinaryStats(
+            float(true and classification),
+            float(true and not classification),
+            float(not true and classification),
+            float(not true and not classification)
+        )
+        print("binary_stats_this_round")
+        print(binary_stats_this_round)
 
-        await self.client.connected()
-        name_hash = await get_from_local_storage("name_hash")
-        if name_hash is None:
-            logger.warning("No name hash found, returning to start page.")
-            ui.open("/")
-            return
+        last_binary_stats_user = BinaryStats(
+            self.user.true_positives,
+            self.user.true_negatives,
+            self.user.false_positives,
+            self.user.false_negatives
+        )
+        print("last_binary_stats_user")
+        print(last_binary_stats_user)
 
-        self.user = self.callbacks.get_user(name_hash)
-        penalize = self.user.penalty
-        logger.info(f"This round penalty: {penalize}")
+        new_binary_stats_user = (
+                (binary_stats_this_round * self.points +
+                 (last_binary_stats_user * (self.max_points - self.points))
+                 ) / self.max_points)
+        print(f"new_binary_stats_user ({self.points}/{self.max_points})")
+        print(new_binary_stats_user)
 
-        if penalize:
-            false_positives = self.user.false_positives + 5.
-            false_negatives = self.user.false_negatives + 5.
-            self.callbacks.update_user_state(self.user, 0, false_positives, 0, false_negatives)
+        self.callbacks.update_user_state(
+            self.user,
+            new_binary_stats_user.true_positives, new_binary_stats_user.false_positives,
+            new_binary_stats_user.true_negatives, new_binary_stats_user.false_negatives
+        )
+        print("binary_stats_session")
+        print(self.binary_stats_session)
 
-            selection = await info_dialog("PENALIZED!")
+        self.binary_stats_session += binary_stats_this_round
+        print("updated binary_stats_session")
+        print(self.binary_stats_session)
 
-        else:
-            self.callbacks.set_user_penalty(self.user, True)
-            logger.info("Setting penalty.")
+    async def _submit(self, interactive_text: InteractiveText) -> None:
+        identity_file = await get_from_local_storage("identity_file")
+        if identity_file is not None and os.path.isfile(identity_file):
+            os.remove(identity_file)
 
-        header_classes = "text-2xl font-semibold text-center py-2 "
+        tags = interactive_text.selected_tags
+        snippet_id = interactive_text.snippet.db_id
 
-        with ui.element("div") as main_container:
-            main_container.classes("mx-8 ")
-            header = ui.label("Finde Hinweise auf KI!")
-            header.classes(header_classes)
+        actually_positive = interactive_text.snippet.is_bot
+        classified_positive = len(tags) >= 1
+        true = actually_positive == classified_positive
 
-            interactive_text = InteractiveText(lambda: self.callbacks.get_next_snippet(self.user))
-            interactive_text.generate_content()
-            interactive_text.update_content()
+        self.user.recent_snippet_ids.append(snippet_id)
 
-            snippet = interactive_text.snippet
-            word_count = len(snippet.text.split())
-            self.points = word_count // 4
+        self._update_stats(classified_positive, true)
 
-            def _decrement_points() -> None:
-                if 5 < self.points:
-                    self.points -= 1
-                else:
-                    self.timer.deactivate()
+        if classified_positive:
+            self.callbacks.update_markers(tags, true)
 
-            with ui.row() as points:
-                points.classes("flex justify-center text-base ")
-                point_text = ui.label().bind_text(self, "points")
-                self.text_points = ui.label(" Punkte übrig")
-
-            self.timer = ui.timer(1, _decrement_points)
-
-            with ui.row() as stats_row:
-                stats_row.classes("flex justify-around ")
-                with ui.column() as col:
-                    ui.label("Falsch erkannt: ")
-                    with ui.row():
-                        ui.label().bind_text(self, "false_negatives")
-                        ui.label("/")
-                        ui.label().bind_text(self, "actually_positive")
-                        ui.label("Bots")
-
-                    with ui.row():
-                        ui.label().bind_text(self, "false_positives")
-                        ui.label("/")
-                        ui.label().bind_text(self, "actually_negative")
-                        ui.label("Menschen")
-
-                with ui.element("div").classes("w-20 md:w-40 rounded ") as avatar_container:
-                    state = "2"  # 2 happy, 0 sad, 1 angry
-                    false_negative_rate = 0. if 0 >= self.actually_positive else self.false_negatives / self.actually_positive
-                    false_positive_rate = 0. if 0 >= self.actually_negative else self.false_positives / self.actually_negative
-
-                    if false_positive_rate >= .2 and false_positive_rate >= false_negative_rate:
-                        state = "1"
-                    elif false_negative_rate >= .2 and false_negative_rate >= false_positive_rate:
-                        state = "0"
-
-                    with ui.image(f"assets/images/portraits/{self.user.face.source_id}-{state}.png") as image:
-                        pass
-
-                    emotion = "kompetent :D"
-                    if state == "0":
-                        emotion = "naiv :.-("
-                    elif state == "1":
-                        emotion = "skrupellos D-:<"
-                    with ui.label(f"{emotion}") as name:
-                        name.classes("text-center text-base ")
-                        pass
-
-            submit_button = ui.button(
-                self.submit_human,
-                on_click=lambda: self._submit(interactive_text)
-            )
-            submit_button.classes("submit w-full ")
-
-            self._init_javascript(f"c{submit_button.id}")
+        await self._feedback_dialog(actually_positive, classified_positive, interactive_text)

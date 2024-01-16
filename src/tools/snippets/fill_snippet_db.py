@@ -6,6 +6,7 @@ import json
 import math
 import pathlib
 import random
+import re
 import time
 from typing import Generator
 
@@ -87,6 +88,25 @@ def snippets_from_file_system(
                     continue
 
                 yield each_snippet
+
+
+def remove_all_fakes() -> None:
+    def extract_index(key: str) -> int:
+        match = re.search(r'snippet:(\d+)', key)
+        if match:
+            return int(match.group(1))
+
+        return -1
+
+    cursor = '0'
+    while True:
+        cursor, keys = redis.scan(cursor, match='snippet:*')
+        for each_key in keys:
+            index = extract_index(each_key)  # Implement this function to extract the index from the key
+            if index >= 8884:
+                redis.delete(each_key)
+        if cursor == '0':
+            break
 
 
 async def main() -> None:
