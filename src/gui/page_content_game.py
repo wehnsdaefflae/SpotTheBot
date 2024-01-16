@@ -243,6 +243,11 @@ class GameContent(ContentPage):
     def _update_text(self) -> None:
         self.interactive_text.update_content()
         self.interactive_text.reset_tagged_word_count()
+        # reset button label
+        js = (
+            "window.spotTheBot.submit_button.children[1].children[0].innerText = '" + self.submit_human + "';"
+        )
+        _ = ui.run_javascript(js)
         snippet = self.interactive_text.snippet
         word_count = len(snippet.text.split())
         self.points = self.max_points = word_count // 4

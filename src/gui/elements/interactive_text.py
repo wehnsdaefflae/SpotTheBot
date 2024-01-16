@@ -137,7 +137,9 @@ class InteractiveText:
         await tag_word(tag, menu, color)
 
     def reset_tagged_word_count(self) -> None:
-        ui.run_javascript("window.spotTheBot.tag_count = {};")
+        ui.run_javascript(
+            "window.spotTheBot.tag_count = {};"
+        )
         self.selected_tags.clear()
         for each_label in self.legend_tags.values():
             each_label.set_visibility(False)
