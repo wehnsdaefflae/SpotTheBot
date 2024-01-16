@@ -110,13 +110,13 @@ async def main() -> None:
     iterations = int(math.ceil(no_auth_comments / 3))
     for i in range(iterations):
         print(f"Generating fake comments {i + 1} / {iterations}")
-        await add_fake_comments(prompt_openai, snippet_database)
+        await add_fake_comments(prompt_openai, snippet_database, no_auth_comments)
 
 
-async def add_fake_comments(prompt_openai: PromptOpenAI, snippet_database: SnippetManager) -> None:
+async def add_fake_comments(prompt_openai: PromptOpenAI, snippet_database: SnippetManager, auth_snippet_count: int) -> None:
     no_examples = 5
     example_snippets = tuple(
-        snippet_database.get_snippet(random.randint(0, snippet_database.snippet_count - 1))
+        snippet_database.get_snippet(random.randint(0, auth_snippet_count - 1))
         for _ in range(no_examples)
     )
 
