@@ -99,7 +99,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 This project was funded by the German BMBF and the Prototype Fund.
 
 ![BMBF Logo](images/BMBF_gefördert%20vom_deutsch.svg)
-![Prototype Fund Logo](images/PrototypeFund-Icon.svg)
+![Prototype Fund Logo](images/PrototypeFund-P-Logo.svg)
 
 * [BMBF Website](https://www.bmbf.de)
 * [Prototype Fund Website](https://prototypefund.de/)
