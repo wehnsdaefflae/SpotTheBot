@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import random
 import time
@@ -80,3 +82,145 @@ class Marker:
     true_negatives: int = 0
     false_positives: int = 0
     false_negatives: int = 0
+
+
+@dataclasses.dataclass
+class BinaryStats:
+    true_positives: float = 0.
+    true_negatives: float = 0.
+    false_positives: float = 0.
+    false_negatives: float = 0.
+
+    def clear(self) -> None:
+        self.true_positives = 0.
+        self.true_negatives = 0.
+        self.false_positives = 0.
+        self.false_negatives = 0.
+
+    @property
+    def actually_positive(self) -> float:
+        return self.true_positives + self.false_negatives
+
+    @property
+    def actually_negative(self) -> float:
+        return self.true_negatives + self.false_positives
+
+    @property
+    def classified_positive(self) -> float:
+        return self.true_positives + self.false_positives
+
+    @property
+    def classified_negative(self) -> float:
+        return self.true_negatives + self.false_negatives
+
+    @property
+    def total(self) -> float:
+        return self.actually_positive + self.actually_negative
+
+    @property
+    def accuracy(self) -> float:
+        if 0. >= self.total:
+            return 0.
+        return (self.true_positives + self.true_negatives) / self.total
+
+    @property
+    def precision(self) -> float:
+        if 0. >= self.classified_positive:
+            return 0.
+        return self.true_positives / self.classified_positive
+
+    @property
+    def recall(self) -> float:
+        if 0. >= self.actually_positive:
+            return 0.
+        return self.true_positives / self.actually_positive
+
+    @property
+    def true_positive_rate(self) -> float:
+        if 0. >= self.actually_positive:
+            return 0.
+        return self.true_positives / self.actually_positive
+
+    @property
+    def true_negative_rate(self) -> float:
+        if 0. >= self.actually_negative:
+            return 0.
+        return self.true_negatives / self.actually_negative
+
+    @property
+    def false_positive_rate(self) -> float:
+        if 0. >= self.actually_negative:
+            return 0.
+        return self.false_positives / self.actually_negative
+
+    @property
+    def false_negative_rate(self) -> float:
+        if 0. >= self.actually_positive:
+            return 0.
+        return self.false_negatives / self.actually_positive
+
+    @property
+    def f1(self) -> float:
+        precision_plus_recall = self.precision + self.recall
+        if 0. >= precision_plus_recall:
+            return 0.
+        return 2. * self.precision * self.recall / precision_plus_recall
+
+    def __str__(self) -> str:
+        return (
+            f"tp: {self.true_positives:.2f}, "
+            f"tn: {self.true_negatives:.2f}, "
+            f"fp: {self.false_positives:.2f}, "
+            f"fn: {self.false_negatives:.2f}"
+        )
+
+    def __add__(self, other: BinaryStats) -> BinaryStats:
+        return BinaryStats(
+            self.true_positives + other.true_positives,
+            self.true_negatives + other.true_negatives,
+            self.false_positives + other.false_positives,
+            self.false_negatives + other.false_negatives
+        )
+
+    def __iadd__(self, other: BinaryStats) -> BinaryStats:
+        self.true_positives += other.true_positives
+        self.true_negatives += other.true_negatives
+        self.false_positives += other.false_positives
+        self.false_negatives += other.false_negatives
+        return self
+
+    def __mul__(self, other: float) -> BinaryStats:
+        return BinaryStats(
+            self.true_positives * other,
+            self.true_negatives * other,
+            self.false_positives * other,
+            self.false_negatives * other
+        )
+
+    def __imul__(self, other: float) -> BinaryStats:
+        self.true_positives *= other
+        self.true_negatives *= other
+        self.false_positives *= other
+        self.false_negatives *= other
+        return self
+
+    def __rmul__(self, other: float) -> BinaryStats:
+        return self * other
+
+    def __truediv__(self, other: float) -> BinaryStats:
+        return BinaryStats(
+            self.true_positives / other,
+            self.true_negatives / other,
+            self.false_positives / other,
+            self.false_negatives / other
+        )
+
+    def __itruediv__(self, other: float) -> BinaryStats:
+        self.true_positives /= other
+        self.true_negatives /= other
+        self.false_positives /= other
+        self.false_negatives /= other
+        return self
+
+    def __rtruediv__(self, other: float) -> BinaryStats:
+        return self / other

@@ -17,7 +17,8 @@ from loguru import logger
 async def logout() -> None:
     with ui.dialog().props("persistent") as dialog, ui.card():
         ui.label(
-            "Are you sure you want to log out? If you want to restore it, you need to know your secret name."
+            "Bist Du sicher, dass Du Dich ausloggen willst? Wenn Du Dich wieder einloggen willst, brauchst Du Deine "
+            "geheime Zugangsdatei."
         )
         with ui.row() as button_row:
             ui.button("yes", on_click=lambda: dialog.submit("yes"))
@@ -31,7 +32,7 @@ async def logout() -> None:
 
 
 async def login() -> None:
-    secret_name = await input_dialog("Enter your secret name.")
+    secret_name = await input_dialog("Gib Deinen geheimen Namen ein.")
     name_hash = hashlib.sha256(secret_name.encode()).hexdigest()
     await set_in_local_storage("name_hash", name_hash)
     ui.open("/")
@@ -59,7 +60,7 @@ class StartContent(ContentPage):
             "        let contents = event.target.result;",
             "        let lines = contents.split('\\n');",
             "        if (lines.length >= 2) {",
-            "            let secondLine = lines[1].trim();"
+            "            let secondLine = lines[1].trim();",
             "            spotTheBot.hashAndStore(secondLine);",
             "            window.location.reload();",
             "        } else {",
@@ -81,10 +82,30 @@ class StartContent(ContentPage):
             "        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');",
             "        localStorage.setItem('name_hash', hashHex);",
             "        console.log(`Hashed second line: ${hashHex}`);",
+            "    },",
+            "    shareInvitation: function(event) {",
+            "        if (navigator.share) {",
+            "            console.log('share supported');",
+            "            navigator.share({",
+            "                title: 'Spot The Bot!',",
+            "                text: 'Mensch oder Maschine?',",
+            "                url: 'https://spotthebot.app'",
+            "            }).then(() => {",
+            "                console.log('Thanks for sharing!');",
+            "            }).catch((error) => {",
+            "                console.log('Error sharing:', error);",
+            "            });",
+            "        } else {",
+            "            console.log('share not supported');",
+            "        }",
             "    }",
             "};",
             "document.getElementById('fileid').addEventListener('change', spotTheBot.onUpload, false);",
-            "let button = document.getElementById('buttonid');"
+            "let button = document.getElementById('buttonid');",
+            # "if (localStorage.getItem('name_hash') !== null) {",
+            # "    let inviteButton = document.getElementById('inviteButton');",
+            # "    inviteButton.addEventListener('click', spotTheBot.shareInvitation);",
+            # "}"
         )
 
         if self.user is None:
@@ -134,8 +155,15 @@ class StartContent(ContentPage):
             source_path, target_path = serve_id_file(secret_name)
 
             await info_dialog(
-                "Merk Dir, wo Du die Datei gespeichert hast. Du brauchst sie, um Dich wieder einzuloggen. "
-                "Beende das Spiel immer mit dem \"quit\" Button, um Strafpunkte zu vermeiden."
+                f"## Achtung!\n"
+                f"1. Sobald du diese Nachricht wegklickst, wird eine Datei `{target_path}` runtergeladen. Merk Dir, wo "
+                f"Du sie gespeichert hast! Du brauchst sie, um dich später wieder einzuloggen.\n"
+                f"2. Markiere Stellen im Text, die dir verdächtig vorkommen. Wenn du nichts markierst, wird der Text "
+                f"als \"echt\" gewertet.\n"
+                f"3. Beende das Spiel immer nur nach einer Antwort mit dem \"Beenden\" Knopf, um Strafpunkte zu "
+                f"vermeiden.\n"
+                f"4. Je schneller Du antwortest, umso mehr Punkte stehen auf dem Spiel. Die Höchstpunktezahl ist durch "
+                f"die Textlänge bestimmt. Die geringste Punktezahl ist 5.\n"
             )
 
             ui.download(source_path, target_path)
@@ -222,12 +250,24 @@ class StartContent(ContentPage):
                 pass
 
             with ui.element("div").classes("flex justify-evenly md:gap-4 md:grid md:grid-cols-3 my-2 "):
-                with ui.element("div").classes("w-2/5 md:w-full md:col-span-1 flex flex-col"):
-                    with ui.markdown("Texte von Bots sind").classes("text-lg font-semibold mb-2 text-center"):
-                        pass
-                    with ui.element("ol").classes("list-decimal list-inside bg-red-200 rounded p-2 flex-grow "):
+                with ui.element("div").classes("w-2/5 md:w-full md:col-span-1 flex flex-col") as left_column:
+                    with ui.element():
+                        with ui.markdown("**Maschinen schreiben** ⓘ").classes("text-lg mb-2 text-center ") as left_header:
+                            pass
+                        with ui.tooltip() as left_tooltip:
+                            with ui.html(
+                                    "Hier findest du die Hinweise, mit denen deine Mitspielerinnen am "
+                                    "häufigsten Bots erkannt haben."
+                            ) as left_tooltip_text:
+                                left_tooltip_text.classes("text-sm text-justify w-64 ")
+
+                    with ui.element("ol") as left_box:
+                        left_box.classes(
+                            "flex flex-grow flex-col items-center "
+                            "list-decimal list-inside bg-red-200 rounded p-2 "
+                        )
                         for each_marker, each_score in good_bot_markers:
-                            with ui.label(each_marker):
+                            with ui.markdown(f"*{each_marker}* ({each_score:.0%})"):
                                 pass
 
                 with ui.element("div").classes(
@@ -246,10 +286,12 @@ class StartContent(ContentPage):
                         elif false_positive_rate >= .2 and false_positive_rate >= false_negative_rate:
                             state = "1"
 
-                    with ui.image(f"assets/images/portraits/{self.face.source_id}-{state}.png").classes(
-                            "w-64 rounded z-0 ").style("image-rendering: pixelated;"):
+                    with ui.image(f"assets/images/portraits/{self.face.source_id}-{state}.png") as image:
+                        image.classes("w-64 rounded z-0 ").style("image-rendering: pixelated;")
                         pass
-                    with ui.button().classes("absolute bottom-5 left-1/2 transform -translate-x-1/2 w-32 z-50 ").props("id=\"buttonid\"") as login_button:
+                    with ui.button() as login_button:
+                        login_button.classes("absolute bottom-5 left-1/2 transform -translate-x-1/2 w-32 z-50 ")
+                        login_button.props("id=\"buttonid\"")
                         with ui.html("<input id='fileid' type='file' hidden/>") as file_input:
                             pass
                         if self.user is None:
@@ -258,12 +300,24 @@ class StartContent(ContentPage):
                             login_button.set_text("Log out")
 
                 with ui.element("div").classes("w-2/5 md:w-full md:col-span-1 flex flex-col"):
-                    with ui.markdown("Echte Texte sind <ins>nicht</ins>").classes(
-                            "text-lg font-semibold mb-2 text-center"):
-                        pass
-                    with ui.element("ol").classes("list-decimal list-inside bg-purple-200 rounded p-2 flex-grow"):
+                    with ui.element():
+                        with ui.markdown("**Menschen schreiben** ⓘ").classes(
+                                "text-lg mb-2 text-center"):
+                            pass
+                        with ui.tooltip() as left_tooltip:
+                            with ui.html(
+                                    "Hier findest du die Hinweise, mit denen deine Mitspielerinnen am "
+                                    "häufigsten Menschen mit Bots verwechselt haben."
+                            ) as left_tooltip_text:
+                                left_tooltip_text.classes("text-sm text-justify w-64 ")
+
+                    with ui.element("ol") as right_box:
+                        right_box.classes(
+                            "flex flex-grow flex-col items-center "
+                            "list-decimal list-inside bg-purple-200 rounded p-2 "
+                        )
                         for each_marker, each_score in bad_human_markers:
-                            with ui.label(each_marker):
+                            with ui.markdown(f"nicht *{each_marker}* ({each_score:.0%})"):
                                 pass
 
             with ui.button("Start Game", on_click=self._start_game).classes("w-5/6 "):
@@ -310,8 +364,10 @@ class StartContent(ContentPage):
                         ).classes("w-20 md:w-40 "):
                             pass
 
-                with ui.button("FreundIn einladen", on_click=self._invite).classes("w-20 md:w-40 "):
-                    pass
+                with ui.button("FreundIn einladen", on_click=self._invite) as invite_button:
+                # with ui.button("FreundIn einladen") as invite_button:
+                    invite_button.classes("w-20 md:w-40 ")
+                    invite_button.props("id=\"inviteButton\"")
 
         return container_friends
 

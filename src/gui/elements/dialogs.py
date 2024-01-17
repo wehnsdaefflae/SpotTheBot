@@ -3,8 +3,9 @@ from nicegui import ui
 
 async def info_dialog(message: str) -> str:
     with ui.dialog().props("persistent") as dialog, ui.card():
-        ui.label(message)
-        ui.button("Dismiss", on_click=lambda: dialog.submit("close"))
+        ui.markdown(message)
+        with ui.button("Alles klar!", on_click=lambda: dialog.submit("close")) as button:
+            button.classes("w-full")
 
     return await dialog
 

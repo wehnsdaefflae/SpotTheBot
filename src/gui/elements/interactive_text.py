@@ -10,13 +10,15 @@ from src.gui.tools import colorize
 
 
 class InteractiveText:
-    def __init__(self, get_snippet: Callable[[], Snippet]):
+    def __init__(self, get_snippet: Callable[[], Snippet], get_submit_button: Callable[[], ui.button]) -> None:
         self.get_snippet = get_snippet
         self.snippet: Snippet | None = None
 
         self.signs_dict = get_signs()
         self.colorized_signs = colorize(self.signs_dict)
         self.legend_tags = dict()
+
+        self.get_submit_button = get_submit_button
 
         self._source_content = ""
         self._text_content: ui.column | None = None
@@ -46,7 +48,6 @@ class InteractiveText:
     def update_content(self) -> None:
         self.snippet = self.get_snippet()
         self._source_content = self.snippet.source
-        # todo: replace with link to video
         self._update_snippet_text(self.snippet.text)
 
     def generate_content(self) -> ui.column:
@@ -70,7 +71,7 @@ class InteractiveText:
                 for each_tag, each_color in self.colorized_signs:
                     each_label = ui.label(each_tag)
                     each_label.classes("legend-item item-01 ")
-                    # todo: custom labels are not colored correctly
+                    # todo: custom labels are not colored correctly or listed in legends
                     each_label.style(add=f"background-color: {each_color};")
                     self.legend_tags[each_tag] = each_label
                     each_label.set_visibility(False)
@@ -144,9 +145,15 @@ class InteractiveText:
         for each_label in self.legend_tags.values():
             each_label.set_visibility(False)
 
+        submit_button = self.get_submit_button()
+        submit_button.props("color=positive")
+
     async def increment_tagged_word_count(self, tag: str) -> None:
         count = await ui.run_javascript(f"window.spotTheBot.increment('{tag}');")
         self.selected_tags[tag] += 1
+
+        submit_button = self.get_submit_button()
+        submit_button.props("color=negative")
 
         tag_legend = self.legend_tags.get(tag)
         if tag_legend is not None:
@@ -160,6 +167,11 @@ class InteractiveText:
                 del self.selected_tags[tag]
             else:
                 self.selected_tags[tag] = count_local - 1
+
+        if sum(self.selected_tags.values()) < 1:
+            submit_button = self.get_submit_button()
+            submit_button.props("color=positive")
+            print("resetting button color")
 
         tag_legend = self.legend_tags.get(tag)
         if tag_legend is not None:
