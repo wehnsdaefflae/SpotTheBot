@@ -36,7 +36,12 @@ To get a local copy up and running, follow these simple steps.
 Python 3.11
 
 ### Installation
-Starting from [working_directory]
+Starting from `[working_directory]`
+`[user]`
+`[db_password]`
+`[storage_secret]`
+`[openaí_api_key]`
+`[domain]`
 
 1. Clone the repo
 ```sh
@@ -104,7 +109,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+User=[user]
 WorkingDirectory=[working_directory]/SpotTheBot
 ExecStart=[working_directory]/SpotTheBot/venv/bin/python [working_directory]/SpotTheBot/src/main.py
 Environment="PYTHONPATH=[working_directory]/SpotTheBot"
@@ -148,7 +153,7 @@ sudo nano config.json
     "port": 8000,
     "title": "Spot The Bot!",
     "uvicorn_logging_level": "debug",
-    "storage_secret": "[storage secret]",
+    "storage_secret": "[storage_secret]",
     "reload": true,
     "tailwind": true,
     "prod_js": false

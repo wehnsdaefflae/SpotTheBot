@@ -5,16 +5,22 @@ from typing import Callable, Coroutine
 from nicegui import ui
 
 from src.dataobjects import Snippet
-from src.gui.dummies import get_signs
 from src.gui.tools import colorize
 
 
 class InteractiveText:
-    def __init__(self, get_snippet: Callable[[], Snippet], get_submit_button: Callable[[], ui.button]) -> None:
+    def __init__(self,
+                 get_snippet: Callable[[], Snippet],
+                 get_submit_button: Callable[[], ui.button],
+                 get_successful_tags: Callable[[int, int], set[tuple[str, float]]],
+                 ) -> None:
         self.get_snippet = get_snippet
         self.snippet: Snippet | None = None
 
-        self.signs_dict = get_signs()
+        self.get_successful_tags = get_successful_tags
+        self.signs_dict = dict()
+        self._update_signs()
+
         self.colorized_signs = colorize(self.signs_dict)
         self.legend_tags = dict()
 
@@ -26,6 +32,17 @@ class InteractiveText:
         self.legend = None
 
         self.selected_tags = Counter()
+
+    def _update_signs(self) -> None:
+        tags = self.get_successful_tags(7, 10)
+
+        self.signs_dict.clear()
+        for each_tag, each_score in tags:
+            prev_score = self.signs_dict.get(each_tag, -1.)
+            if prev_score < each_score:
+                self.signs_dict[each_tag] = each_score
+
+        print(self.signs_dict)
 
     def _update_snippet_text(self, text: str) -> None:
         self._text_content.clear()
@@ -49,6 +66,8 @@ class InteractiveText:
         self.snippet = self.get_snippet()
         self._source_content = self.snippet.source
         self._update_snippet_text(self.snippet.text)
+        self._update_signs()
+        self.colorized_signs = colorize(self.signs_dict)
 
     def generate_content(self) -> ui.column:
         with ui.column() as main_column:

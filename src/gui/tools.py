@@ -25,7 +25,7 @@ def int_to_base36(num: int) -> str:
     return result
 
 
-def colorize(signs_dict: dict[str, int]) -> tuple[tuple[str, str], ...]:
+def colorize(signs_dict: dict[str, float]) -> tuple[tuple[str, str], ...]:
     color_generator = hex_color_segmentation(.75)
     signs = sorted(signs_dict, key=signs_dict.get, reverse=True)
     return tuple((each_sign, next(color_generator)) for each_sign in signs)
@@ -70,10 +70,10 @@ def serve_id_file(secret_name: str) -> tuple[str, str]:
     return file.name, "spotthebot_secret_identity.txt"
 
 
-async def remove_from_local_storage(key: str) -> None:
+def remove_from_local_storage(key: str) -> None:
     try:
         command = f"localStorage.removeItem('{key}')"
-        _ = await ui.run_javascript(command)
+        _ = ui.run_javascript(command)
 
     except TimeoutError as e:
         logger.error(e)
@@ -92,10 +92,10 @@ async def get_from_local_storage(key: str) -> str | None:
     return result
 
 
-async def set_in_local_storage(key: str, value: str) -> None:
+def set_in_local_storage(key: str, value: str) -> None:
     try:
         command = f"localStorage.setItem('{key}', '{value}')"
-        _ = await ui.run_javascript(command)
+        _ = ui.run_javascript(command)
         logger.info(f"Set '{key}' to '{value}'.")
 
     except TimeoutError as e:
