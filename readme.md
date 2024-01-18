@@ -1,5 +1,4 @@
 # Spot The Bot - A Community-Agnostic AI Text Recognition Game
-
 ![Logo Placeholder](images/spotthebot.svg)
 
 Spot The Bot is an innovative web application game designed to enhance the ability of users to distinguish between AI-generated and human-written text. Tailored for various communities, Spot The Bot offers an engaging and educational platform to identify and understand the subtle differences in language usage between humans and AI models.
@@ -14,7 +13,6 @@ Spot The Bot is an innovative web application game designed to enhance the abili
 - [Acknowledgments](#acknowledgments)
 
 ## About the Project
-
 ![Screenshot](images/screenshot_game.png)
 
 Spot The Bot allows communities to input their authentic texts and then challenges players to differentiate between these and AI-generated versions of the texts. Players tag suspicious words or phrases with custom labels such as "irrelevant" or "generic," aiding in the identification of AI-generated content and publishing helpful information even for those who prefer not to play the game. The game is designed to be community-agnostic, meaning that it can be tailored to any community, from online forums to social media platforms.
@@ -32,15 +30,10 @@ Spot The Bot allows communities to input their authentic texts and then challeng
 - [Tailwind CSS](https://tailwindcss.com/)
 
 ## Getting Started
-
 To get a local copy up and running, follow these simple steps.
 
-### Prerequisites
-
-List of things you need to use the software and how to install them.
-```
-example commands
-```
+### Prerequisites (todo: finish this)
+Python 3.11
 
 ### Installation
 Starting from [working_directory]
@@ -197,7 +190,7 @@ sudo nano config.json
 }
 ```
 
-11Start and enable server and database
+11. Start and enable server and database
 ```sh
 sudo systemctl start spotthebot_db
 sudo systemctl enable spotthebot_db
@@ -206,7 +199,6 @@ sudo systemctl enable spotthebot
  ```
 
 ## Contributing
-
 Contributions make the open-source community an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 1. Fork the Project
@@ -216,11 +208,9 @@ Contributions make the open-source community an amazing place to learn, inspire,
 5. Open a Pull Request
 
 ## License
-
 Distributed under the MIT License. See `LICENSE` for more information.
 
 ## Acknowledgments
-
 This project was funded by the German BMBF and the Prototype Fund.
 
 ![BMBF Logo](images/BMBF_gefördert%20vom_deutsch.svg)
