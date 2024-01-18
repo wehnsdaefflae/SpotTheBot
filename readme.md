@@ -43,42 +43,167 @@ example commands
 ```
 
 ### Installation
+Starting from [working_directory]
 
 1. Clone the repo
-   ```sh
-   git clone https://github.com/your_username_/Project-Name.git
-   ```
-2. Create a virtual environment
-   ```sh
-   python3 -m venv venv
-   ```
+```sh
+git clone https://github.com/wehnsdaefflae/SpotTheBot
+```
+
+2. Create and activate virtual environment
+```sh
+cd SpotTheBot
+python3 -m venv venv
+source venv/bin/activate
+```
+
 3. Install pip dependencies
-   ```sh
-   pip install -r requirements.txt
-   ```
-4. Add a systemd service file for the database
-   ```sh
-   sudo nano /etc/systemd/system/redis.service
-   ```
-5. Add the following lines to the file
-   ```unit
-    [Unit]
+```sh
+pip install -r requirements.txt
+```
+   
+4. Configure the database
+```sh
+nano databases/general.conf
+```
+```general.conf
+bind 127.0.0.1
+requirepass [db_password]
+port 6379
+save 60 10
+loglevel verbose
+dir databases/
+dbfilename spotthebot.rdb
+appendonly yes
+appendfsync everysec
+```
+
+5. Add systemd service file for the database
+```sh
+sudo nano /etc/systemd/system/spotthebot_db.service
+```
+
+```unit
+[Unit]
+Description=SpotTheBot Redis Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=[working_directory]/SpotTheBot
+ExecStart=/usr/bin/redis-server [working_directory]/SpotTheBot/databases/general.conf
+User=root
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
 6. Add a systemd service file for the server
-   ```sh
-   sudo nano /etc/systemd/system/spotthebot.service
-   ```
-7. Install https certificates
-   ```sh
-   sudo certbot --nginx
-   ```
-8. Modify the config file
-   ```sh
-   sudo nano /etc/spotthebot/config.json
-   ```
-9. Start the server
-   ```sh
-    sudo systemctl start spotthebot
-    ```
+```sh
+sudo nano /etc/systemd/system/spotthebot.service
+```
+
+```unit
+[Unit]
+Description=SpotTheBot Python Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=[working_directory]/SpotTheBot
+ExecStart=[working_directory]/SpotTheBot/venv/bin/python [working_directory]/SpotTheBot/src/main.py
+Environment="PYTHONPATH=[working_directory]/SpotTheBot"
+
+[Install]
+WantedBy=multi-user.target
+```
+
+7. Install Nginx
+```sh
+sudo apt install nginx
+```
+
+8. Add a Nginx config file (todo: finish this)
+```sh
+sudo nano /etc/nginx/sites-available/spotthebot
+```
+
+```nginx
+server {
+    listen 80;
+    server_name [domain];
+    location / {
+        proxy_pass http://
+```
+
+9. Install https certificates
+```sh
+sudo certbot --nginx
+```
+
+10. Modify the config file
+```sh
+sudo nano config.json
+```
+
+```json
+ {
+  "nicegui": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "title": "Spot The Bot!",
+    "uvicorn_logging_level": "debug",
+    "storage_secret": "[storage secret]",
+    "reload": true,
+    "tailwind": true,
+    "prod_js": false
+  },
+  "openai": {
+    "key": "[openaí_api_key]",
+    "parameters": {
+      "model": "gpt-4-1106-preview",
+      "temperature": 0,
+      "top_p": null
+    }
+  },
+  "redis": {
+    "users_database": {
+      "host": "localhost",
+      "port": 6379,
+      "password": "[db_password]",
+      "db": 0
+    },
+    "snippets_database": {
+      "host": "localhost",
+      "port": 6379,
+      "password": "[db_password]",
+      "db": 1
+    },
+    "markers_database": {
+      "host": "localhost",
+      "port": 6379,
+      "password": "[db_password]",
+      "db": 2
+    },
+    "invitations_database": {
+      "host": "localhost",
+      "port": 6379,
+      "password": "[db_password]",
+      "db": 3
+    }
+  }
+}
+```
+
+11Start and enable server and database
+```sh
+sudo systemctl start spotthebot_db
+sudo systemctl enable spotthebot_db
+sudo systemctl start spotthebot
+sudo systemctl enable spotthebot
+ ```
 
 ## Contributing
 
