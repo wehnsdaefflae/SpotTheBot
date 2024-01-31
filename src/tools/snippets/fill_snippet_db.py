@@ -6,7 +6,6 @@ import json
 import math
 import pathlib
 import random
-import re
 import time
 from typing import Generator
 
@@ -90,25 +89,6 @@ def snippets_from_file_system(
                 yield each_snippet
 
 
-def remove_all_fakes() -> None:
-    def extract_index(key: str) -> int:
-        match = re.search(r'snippet:(\d+)', key)
-        if match:
-            return int(match.group(1))
-
-        return -1
-
-    cursor = '0'
-    while True:
-        cursor, keys = redis.scan(cursor, match='snippet:*')
-        for each_key in keys:
-            index = extract_index(each_key)  # Implement this function to extract the index from the key
-            if index >= 8884:
-                redis.delete(each_key)
-        if cursor == '0':
-            break
-
-
 async def main() -> None:
     with open("../../../config.json", mode="r") as config_file:
         config = json.load(config_file)
@@ -118,11 +98,7 @@ async def main() -> None:
 
     snippet_database = SnippetManager(snippets_config)
 
-    """
     no_auth_comments = await add_authentic_comments(snippet_database)
-    # 8884 added
-    """
-    no_auth_comments = 8884
 
     openai_config = config["openai"]
     prompt_openai = PromptOpenAI(openai_config)
@@ -135,7 +111,9 @@ async def main() -> None:
         await add_fake_comments(prompt_openai, snippet_database, no_auth_comments)
 
 
-async def add_fake_comments(prompt_openai: PromptOpenAI, snippet_database: SnippetManager, auth_snippet_count: int) -> None:
+async def add_fake_comments(
+        prompt_openai: PromptOpenAI, snippet_database: SnippetManager, auth_snippet_count: int, batch_size: int = 20
+) -> None:
     no_examples = 5
     example_snippets = tuple(
         snippet_database.get_snippet(random.randint(0, auth_snippet_count - 1))

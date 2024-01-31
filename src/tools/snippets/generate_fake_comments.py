@@ -70,7 +70,6 @@ class PromptOpenAI:
         return reply.strip()
 
 
-
 def extract_code_blocks(text: str, code_type: str = "") -> tuple[str, ...]:
     """
     Extracts all code blocks that contain the specified keyword from a string using regular expressions.
