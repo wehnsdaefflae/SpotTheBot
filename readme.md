@@ -13,7 +13,9 @@ Spot The Bot is an innovative web application game designed to enhance the abili
 - [Acknowledgments](#acknowledgments)
 
 ## About the Project
+
 [screencast_spotthebot.webm](https://github.com/wehnsdaefflae/SpotTheBot/assets/9195325/12c8b5de-76f6-4240-9ff8-475d2e06d01f)
+
 ![Screenshot](images/screenshot_game.png)
 
 Spot The Bot allows communities to input their authentic texts and then challenges players to differentiate between these and AI-generated versions of the texts. Players tag suspicious words or phrases with custom labels such as "irrelevant" or "generic," aiding in the identification of AI-generated content and publishing helpful information even for those who prefer not to play the game. The game is designed to be community-agnostic, meaning that it can be tailored to any community, from online forums to social media platforms.
