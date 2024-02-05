@@ -42,6 +42,13 @@ class InteractiveText:
             if prev_score < each_score:
                 self.signs_dict[each_tag] = each_score
 
+        dummy_list = ["redundant", "stereotyp", "unlogisch", "unpräzise", "zu allgemein"]
+        len_dict = len(self.signs_dict)
+        len_dummies = len(dummy_list)
+        for i in range(len_dummies - len_dict):
+            each_dummy = dummy_list[i]
+            self.signs_dict[each_dummy] = 0.
+
         print(self.signs_dict)
 
     def _update_snippet_text(self, text: str) -> None:
