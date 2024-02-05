@@ -273,7 +273,8 @@ class StartContent(ContentPage):
                 )
                 bot_header = "Texte von Bots sind"
                 bot_tooltip = (
-                    "Hier findest du die Hinweise, mit denen deine Mitspielerinnen am häufigsten Bots erkannt haben."
+                    "Wenn genug gespielt wurde, findest du hier Hinweise, mit denen deine Mitspielerinnen "
+                    "erfolgreich Bots erkannt haben."
                 )
                 StartContent._create_stats(bot_header, bot_tooltip, bot_tags)
 
@@ -291,8 +292,8 @@ class StartContent(ContentPage):
                 )
                 human_header = "Echte Texte sind <ins>nicht</ins>"
                 human_tooltip = (
-                    "Hier findest du die Hinweise, mit denen deine Mitspielerinnen am häufigsten Menschen mit Bots "
-                    "verwechselt haben."
+                    "Wenn genug gespielt wurde, findest du hier Textmerkmale, die für deine Mitspielerinnen am "
+                    "stärksten nach einem Bot klingen, obwohl die Texte von Menschen sind."
                 )
                 StartContent._create_stats(human_header, human_tooltip, human_tags)
 
@@ -393,7 +394,7 @@ class StartContent(ContentPage):
             if self._user is not None:
                 await self._create_friends_container()
                 ui.separator()
-            await self._create_footer_container()
+            # await self._create_footer_container()
 
         await self._set_domain()
         self._init_javascript()
