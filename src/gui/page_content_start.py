@@ -379,6 +379,29 @@ class StartContent(ContentPage):
             with ui.label("Footer") as header:
                 header.classes(self._header_classes)
 
+    async def _logout(self) -> None:
+        """Perform cleanup when user logs out."""
+        # Remove identity file if it exists
+        identity_file = await get_from_local_storage("identity_file")
+        if identity_file is not None and os.path.isfile(identity_file):
+            try:
+                os.remove(identity_file)
+                logger.info(f"Removed identity file: {identity_file}")
+            except OSError as e:
+                logger.error(f"Error removing identity file: {e}")
+
+        # Clear local storage
+        remove_from_local_storage("name_hash")
+        remove_from_local_storage("identity_file")
+
+        # Reset user state
+        self._user = None
+        self._face = Face()
+
+        # Refresh page to show login state
+        ui.open("/")
+        logger.info("User logged out successfully")
+
     async def create_content(self) -> None:
         logger.info("Index page")
         await self.client.connected()
