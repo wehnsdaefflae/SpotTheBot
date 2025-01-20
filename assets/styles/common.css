@@ -1,0 +1,409 @@
+/* assets/styles/common.css */
+@font-face {
+  font-family: 'CompassPro';
+  src: url('hf-free-complete/compass-pro-v1.1/CompassPro.woff') format('woff'),
+    url('hf-free-complete/compass-pro-v1.1/CompassPro.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'EquipmentPro';
+  src: url('hf-free-complete/equipment-pro-v1.1/EquipmentPro.woff') format('woff'),
+    url('hf-free-complete/equipment-pro-v1.1/EquipmentPro.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'ExpressionPro';
+  src: url('hf-free-complete/expression-pro-v1.1/ExpressionPro.woff') format('woff'),
+    url('hf-free-complete/expression-pro-v1.1/ExpressionPro.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'FutilePro';
+  src: url('hf-free-complete/futile-pro-v1/FutilePro.woff') format('woff'),
+    url('hf-free-complete/futile-pro-v1/FutilePro.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'MatchupPro';
+  src: url('hf-free-complete/matchup-pro-v1.1/MatchupPro.woff') format('woff'),
+    url('hf-free-complete/matchup-pro-v1.1/MatchupPro.ttf') format('truetype');
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Pixel Corners Soft Style */
+.pixel-corners-soft,
+.pixel-corners-soft--wrapper {
+  clip-path: polygon(0px calc(100% - 20px),
+      4px calc(100% - 20px),
+      4px calc(100% - 12px),
+      8px calc(100% - 12px),
+      8px calc(100% - 8px),
+      12px calc(100% - 8px),
+      12px calc(100% - 4px),
+      20px calc(100% - 4px),
+      20px 100%,
+      calc(100% - 20px) 100%,
+      calc(100% - 20px) calc(100% - 4px),
+      calc(100% - 12px) calc(100% - 4px),
+      calc(100% - 12px) calc(100% - 8px),
+      calc(100% - 8px) calc(100% - 8px),
+      calc(100% - 8px) calc(100% - 12px),
+      calc(100% - 4px) calc(100% - 12px),
+      calc(100% - 4px) calc(100% - 20px),
+      100% calc(100% - 20px),
+      100% 20px,
+      calc(100% - 4px) 20px,
+      calc(100% - 4px) 12px,
+      calc(100% - 8px) 12px,
+      calc(100% - 8px) 8px,
+      calc(100% - 12px) 8px,
+      calc(100% - 12px) 4px,
+      calc(100% - 20px) 4px,
+      calc(100% - 20px) 0px,
+      20px 0px,
+      20px 4px,
+      12px 4px,
+      12px 8px,
+      8px 8px,
+      8px 12px,
+      4px 12px,
+      4px 20px,
+      0px 20px);
+  position: relative;
+}
+
+.pixel-corners-soft {
+  border: 4px solid transparent;
+}
+
+.pixel-corners-soft--wrapper {
+  width: fit-content;
+  height: fit-content;
+}
+
+.pixel-corners-soft--wrapper .pixel-corners-soft {
+  display: block;
+  clip-path: polygon(4px 20px,
+      8px 20px,
+      8px 12px,
+      12px 12px,
+      12px 8px,
+      20px 8px,
+      20px 4px,
+      calc(100% - 20px) 4px,
+      calc(100% - 20px) 8px,
+      calc(100% - 12px) 8px,
+      calc(100% - 12px) 12px,
+      calc(100% - 8px) 12px,
+      calc(100% - 8px) 20px,
+      calc(100% - 4px) 20px,
+      calc(100% - 4px) calc(100% - 20px),
+      calc(100% - 8px) calc(100% - 20px),
+      calc(100% - 8px) calc(100% - 12px),
+      calc(100% - 12px) calc(100% - 12px),
+      calc(100% - 12px) calc(100% - 8px),
+      calc(100% - 20px) calc(100% - 8px),
+      calc(100% - 20px) calc(100% - 4px),
+      20px calc(100% - 4px),
+      20px calc(100% - 8px),
+      12px calc(100% - 8px),
+      12px calc(100% - 12px),
+      8px calc(100% - 12px),
+      8px calc(100% - 20px),
+      4px calc(100% - 20px));
+}
+
+.pixel-corners-soft::after,
+.pixel-corners-soft--wrapper::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  box-sizing: content-box;
+}
+
+.eightbit-btn:before {
+  top: -6px;
+  left: 0;
+  border-top: 6px black solid;
+  border-bottom: 6px black solid;
+}
+
+.eightbit-btn:after {
+  left: -6px;
+  top: 0;
+  border-left: 6px black solid;
+  border-right: 6px black solid;
+}
+
+.eightbit-btn--reset {
+  background: #E76E55;
+  box-shadow: inset -4px -4px 0px 0px #8C2022;
+}
+
+.eightbit-btn--reset:hover, .eightbit-btn--reset:focus {
+  background: #CE372B;
+  box-shadow: inset -6px -6px 0px 0px #8C2022;
+}
+
+.eightbit-btn--reset:active {
+  box-shadow: inset 4px 4px 0px 0px #8C2022;
+}
+
+.eightbit-btn--proceed {
+  background: #F7D51D;
+  box-shadow: inset -4px -4px 0px 0px #E59400;
+}
+
+.eightbit-btn--proceed:hover, .eightbit-btn--proceed:focus {
+  background: #F2C409;
+  box-shadow: inset -6px -6px 0px 0px #E59400;
+}
+
+.eightbit-btn--proceed:active {
+  box-shadow: inset 4px 4px 0px 0px #E59400;
+}
+
+/* Common Button Styles */
+button {
+  font-family: 'EquipmentPro', sans-serif;
+}
+
+/* Dashed Line */
+.dashed-line {
+  grid-column: 1 / -1;
+  height: 50px;
+  position: relative;
+}
+
+.dashed-line::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  border-top: 4px dashed grey;
+  transform: translateY(-50%);
+}
+  position: absolute;
+  clip-path: polygon(0px calc(100% - 20px),
+      4px calc(100% - 20px),
+      4px calc(100% - 12px),
+      8px calc(100% - 12px),
+      8px calc(100% - 8px),
+      12px calc(100% - 8px),
+      12px calc(100% - 4px),
+      20px calc(100% - 4px),
+      20px 100%,
+      calc(100% - 20px) 100%,
+      calc(100% - 20px) calc(100% - 4px),
+      calc(100% - 12px) calc(100% - 4px),
+      calc(100% - 12px) calc(100% - 8px),
+      calc(100% - 8px) calc(100% - 8px),
+      calc(100% - 8px) calc(100% - 12px),
+      calc(100% - 4px) calc(100% - 12px),
+      calc(100% - 4px) calc(100% - 20px),
+      100% calc(100% - 20px),
+      100% 20px,
+      calc(100% - 4px) 20px,
+      calc(100% - 4px) 12px,
+      calc(100% - 8px) 12px,
+      calc(100% - 8px) 8px,
+      calc(100% - 12px) 8px,
+      calc(100% - 12px) 4px,
+      calc(100% - 20px) 4px,
+      calc(100% - 20px) 0px,
+      20px 0px,
+      20px 4px,
+      12px 4px,
+      12px 8px,
+      8px 8px,
+      8px 12px,
+      4px 12px,
+      4px 20px,
+      0px 20px,
+      0px 50%,
+      4px 50%,
+      4px 20px,
+      8px 20px,
+      8px 12px,
+      12px 12px,
+      12px 8px,
+      20px 8px,
+      20px 4px,
+      calc(100% - 20px) 4px,
+      calc(100% - 20px) 8px,
+      calc(100% - 12px) 8px,
+      calc(100% - 12px) 12px,
+      calc(100% - 8px) 12px,
+      calc(100% - 8px) 20px,
+      calc(100% - 4px) 20px,
+      calc(100% - 4px) calc(100% - 20px),
+      calc(100% - 8px) calc(100% - 20px),
+      calc(100% - 8px) calc(100% - 12px),
+      calc(100% - 12px) calc(100% - 12px),
+      calc(100% - 12px) calc(100% - 8px),
+      calc(100% - 20px) calc(100% - 8px),
+      calc(100% - 20px) calc(100% - 4px),
+      20px calc(100% - 4px),
+      20px calc(100% - 8px),
+      12px calc(100% - 8px),
+      12px calc(100% - 12px),
+      8px calc(100% - 12px),
+      8px calc(100% - 20px),
+      4px calc(100% - 20px),
+      4px 50%,
+      0px 50%);
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: black;
+  display: block;
+  pointer-events: none;
+}
+
+.pixel-corners-soft::after {
+  margin: -4px;
+}
+
+/* Pixel Corners Hard Style */
+.pixel-corners-hard,
+.pixel-corners-hard--wrapper {
+  clip-path: polygon(0px calc(100% - 8px),
+    4px calc(100% - 8px),
+    4px calc(100% - 4px),
+    8px calc(100% - 4px),
+    8px 100%,
+    calc(100% - 8px) 100%,
+    calc(100% - 8px) calc(100% - 4px),
+    calc(100% - 4px) calc(100% - 4px),
+    calc(100% - 4px) calc(100% - 8px),
+    100% calc(100% - 8px),
+    100% 8px,
+    calc(100% - 4px) 8px,
+    calc(100% - 4px) 4px,
+    calc(100% - 8px) 4px,
+    calc(100% - 8px) 0px,
+    8px 0px,
+    8px 4px,
+    4px 4px,
+    4px 8px,
+    0px 8px);
+  position: relative;
+}
+
+.pixel-corners-hard {
+  border: 4px solid transparent;
+}
+
+.pixel-corners-hard--wrapper {
+  width: fit-content;
+  height: fit-content;
+}
+
+.pixel-corners-hard--wrapper .pixel-corners-hard {
+  display: block;
+  clip-path: polygon(4px 8px,
+    8px 8px,
+    8px 4px,
+    calc(100% - 8px) 4px,
+    calc(100% - 8px) 8px,
+    calc(100% - 4px) 8px,
+    calc(100% - 4px) calc(100% - 8px),
+    calc(100% - 8px) calc(100% - 8px),
+    calc(100% - 8px) calc(100% - 4px),
+    8px calc(100% - 4px),
+    8px calc(100% - 8px),
+    4px calc(100% - 8px));
+}
+
+.pixel-corners-hard::after,
+.pixel-corners-hard--wrapper::after {
+  content: "";
+  position: absolute;
+  clip-path: polygon(0px calc(100% - 8px),
+    4px calc(100% - 8px),
+    4px calc(100% - 4px),
+    8px calc(100% - 4px),
+    8px 100%,
+    calc(100% - 8px) 100%,
+    calc(100% - 8px) calc(100% - 4px),
+    calc(100% - 4px) calc(100% - 4px),
+    calc(100% - 4px) calc(100% - 8px),
+    100% calc(100% - 8px),
+    100% 8px,
+    calc(100% - 4px) 8px,
+    calc(100% - 4px) 4px,
+    calc(100% - 8px) 4px,
+    calc(100% - 8px) 0px,
+    8px 0px,
+    8px 4px,
+    4px 4px,
+    4px 8px,
+    0px 8px,
+    0px 50%,
+    4px 50%,
+    4px 8px,
+    8px 8px,
+    8px 4px,
+    calc(100% - 8px) 4px,
+    calc(100% - 8px) 8px,
+    calc(100% - 4px) 8px,
+    calc(100% - 4px) calc(100% - 8px),
+    calc(100% - 8px) calc(100% - 8px),
+    calc(100% - 8px) calc(100% - 4px),
+    8px calc(100% - 4px),
+    8px calc(100% - 8px),
+    4px calc(100% - 8px),
+    4px 50%,
+    0px 50%);
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #000000;
+  display: block;
+  pointer-events: none;
+}
+
+.pixel-corners-hard::after {
+  margin: -4px;
+}
+
+.pixel-corners-hard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 16px;
+  background-color: black;
+  z-index: 10;
+}
+
+/* 8-bit Button Styles */
+.eightbit-btn {
+  background: #92CD41;
+  display: inline-block;
+  position: relative;
+  text-align: center;
+  text-decoration: none;
+  color: #76c442;
+  box-shadow: inset -4px -4px 0px 0px #4AA52E;
+}
+
+.eightbit-btn:hover, .eightbit-btn:focus {
+  background: #76c442;
+  box-shadow: inset -6px -6px 0px 0px #4AA52E;
+}
+
+.eightbit-btn:active {
+  box-shadow: inset 4px 4px 0px 0px #4AA52E;
+}
+
+.eightbit-btn:before, .eightbit-btn:after {
+  content: "";
