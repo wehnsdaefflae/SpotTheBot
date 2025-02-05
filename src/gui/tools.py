@@ -9,6 +9,25 @@ from src.tools.misc import hex_color_segmentation
 
 
 def int_to_base36(num: int) -> str:
+    """
+    Converts a positive integer to its base-36 string representation.
+    Used for generating compact, URL-safe invitation links.
+    
+    Args:
+        num (int): A positive integer to convert
+        
+    Returns:
+        str: The base-36 string representation using digits 0-9 and lowercase letters a-z
+        
+    Examples:
+        >>> int_to_base36(0)
+        '0'
+        >>> int_to_base36(42)
+        '16'
+        >>> int_to_base36(123456)
+        '2n9c'
+    """
+
     num = abs(num)
     if num == 0:
         return '0'
