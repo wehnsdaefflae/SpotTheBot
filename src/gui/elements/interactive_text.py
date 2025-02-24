@@ -32,6 +32,26 @@ class InteractiveText:
         self.legend = None
 
         self.selected_tags = Counter()
+        
+        # Dictionary of tooltips explaining each marker
+        self.marker_tooltips = {
+            "ausweichend": "Text weicht dem eigentlichen Thema aus oder antwortet nicht direkt auf Fragen.",
+            "zu allgemein": "Text ist zu oberflächlich und enthält keine spezifischen Details.",
+            "abgedroschen": "Text enthält übermäßig viele Klischees oder Gemeinplätze.",
+            "unlogisch": "Text enthält widersprüchliche Aussagen oder unlogische Schlussfolgerungen.",
+            "unverständlich": "Text ist schwer zu verstehen oder enthält verwirrende Formulierungen.",
+            "künstlich": "Text klingt unnatürlich oder mechanisch formuliert.",
+            "monoton": "Text hat einen gleichförmigen Rhythmus oder eine monotone Struktur.",
+            "redundant": "Text wiederholt dieselben Informationen unnötig.",
+            "langweilig": "Text ist nicht engagierend und enthält kaum interessante Inhalte.",
+            "unpräzise": "Text ist nicht präzise und verwendet vage Formulierungen.",
+            "stereotyp": "Text enthält typische, vorhersehbare Formulierungen.",
+            "formelhaft": "Text folgt einem starren, vorhersehbaren Schema.",
+            "gekünstelt": "Text wirkt übertrieben oder unnatürlich formuliert.",
+            "unspezifisch": "Text fehlen konkrete Beispiele oder Details.",
+            "wiederholt": "Text wiederholt dieselben Wörter oder Phrasen häufig.",
+            "unzusammenhängend": "Text zeigt Brüche im Gedankengang oder mangelnde Kohärenz."
+        }
 
     def _update_signs(self) -> None:
         tags = self.get_successful_tags(7, 10)
@@ -85,12 +105,12 @@ class InteractiveText:
 
             ui.separator()
 
-            ui.label("“").classes("text-9xl text-gray-400 h-8 ")
+            ui.label(""").classes("text-9xl text-gray-400 h-8 ")
 
             with ui.column() as self._text_content:
                 self._text_content.classes("text-xl max-w-prose mx-auto ")
 
-            ui.label("”").classes("text-9xl text-gray-400 w-full text-right h-8 ")
+            ui.label(""").classes("text-9xl text-gray-400 w-full text-right h-8 ")
 
             with ui.row() as self.legend:
                 self.legend.classes("legend h-16 ")
@@ -112,11 +132,16 @@ class InteractiveText:
             tag_word = self._get_tagging(word_label)
             with ui.menu() as menu:
                 for each_sign, each_color in signs_popular:
-                    each_item = ui.menu_item(
-                        each_sign,
-                        on_click=lambda _, sign=each_sign, color=each_color: tag_word(sign, None, color)
-                    )
-                    each_item.style(add=f"background-color: {each_color};")
+                    with ui.element("div") as item_container:
+                        each_item = ui.menu_item(
+                            each_sign,
+                            on_click=lambda _, sign=each_sign, color=each_color: tag_word(sign, None, color)
+                        )
+                        each_item.style(add=f"background-color: {each_color};")
+                        # Add tooltip for each marker
+                        tooltip_text = self.marker_tooltips.get(each_sign, f"Markiere Text, der {each_sign} erscheint")
+                        with ui.tooltip(each_item) as tooltip:
+                            ui.label(tooltip_text).style("font-size: 0.8rem; max-width: 200px;")
 
                 ui.separator()
                 with ui.row() as row:
