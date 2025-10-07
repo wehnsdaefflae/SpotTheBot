@@ -1,3 +1,4 @@
+import os
 import uuid
 from urllib.parse import urlparse
 
@@ -41,77 +42,17 @@ class StartContent(ContentPage):
 
     def _init_javascript(self) -> None:
         init_js = (
-            "window.spotTheBot = {",
-            "    openDialog: function(event) {",
-            "        document.getElementById('fileid').click();",
-            "    },",
-            "    logout: function(event) {",
-            "        localStorage.removeItem('name_hash');",
-            "        window.location.reload();",
-            "    },",
-            "    onLoaded: function(event) {",
-            "        console.log('loaded');",
-            "        let contents = event.target.result;",
-            "        let lines = contents.split('\\n');",
-            "        if (lines.length >= 2) {",
-            "            let secondLine = lines[1].trim();",
-            "            spotTheBot.hashAndStore(secondLine);",
-            "            window.location.reload();",
-            "        } else {",
-            "            console.log(\"The file does not have a second line.\");",
-            "        }",
-            "    },",
-            "    onUpload: function(event) {",
-            "       console.log('uploading');",
-            "       let file = document.getElementById('fileid').files[0];",
-            "       let reader = new FileReader();",
-            "       reader.onload = spotTheBot.onLoaded;",
-            "       reader.readAsText(file);",
-            "    },",
-            "    hashAndStore: async function(data) {",
-            "        const encoder = new TextEncoder();",
-            "        const dataEncoded = encoder.encode(data);",
-            "        const hashBuffer = await crypto.subtle.digest('SHA-256', dataEncoded);",
-            "        const hashArray = Array.from(new Uint8Array(hashBuffer));",
-            "        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');",
-            "        localStorage.setItem('name_hash', hashHex);",
-            "        console.log(`Hashed second line: ${hashHex}`);",
-            "    },",
-            "    shareInvitation: function(event) {",
-            "        if (navigator.share) {",
-            "            console.log('share supported');",
-            "            navigator.share({",
-            "                title: 'Spot The Bot!',",
-            "                text: 'Mensch oder Maschine?',",
-            f"                url: '{self._domain}'",
-            "            }).then(() => {",
-            "                console.log('Thanks for sharing!');",
-            "            }).catch((error) => {",
-            "                console.log('Error sharing:', error);",
-            "            });",
-            "        } else {",
-            "            console.log('share not supported');",
-            "        }",
-            "    }",
-            "};",
-            "document.getElementById('fileid').addEventListener('change', spotTheBot.onUpload, false);",
-            "let button = document.getElementById('buttonid');",
-            # "if (localStorage.getItem('name_hash') !== null) {",
-            # "    let inviteButton = document.getElementById('inviteButton');",
-            # "    inviteButton.addEventListener('click', spotTheBot.shareInvitation);",
-            # "}"
+            f"spotTheBot.init('{self._domain}');"
+            "document.getElementById('fileid').addEventListener('change', spotTheBot.onUpload, false);"
+            "let button = document.getElementById('buttonid');"
         )
 
         if self._user is None:
-            init_js += (
-                "button.addEventListener('click', spotTheBot.openDialog);",
-            )
+            init_js += "button.addEventListener('click', spotTheBot.openDialog);"
         else:
-            init_js += (
-                "button.addEventListener('click', spotTheBot.logout);",
-            )
+            init_js += "button.addEventListener('click', spotTheBot.logout);"
 
-        _ = ui.run_javascript("\n".join(init_js))
+        _ = ui.run_javascript(init_js)
 
     async def _set_domain(self) -> None:
         js_url = await ui.run_javascript('window.location.href', timeout=3., check_interval=.1)
@@ -361,7 +302,7 @@ class StartContent(ContentPage):
                         with ui.label(each_friend.name) as name:
                             pass
 
-                        with ui.label(f"Wins: {10}") as friend_stats:
+                        with ui.label(f"Wins: {each_friend.wins}") as friend_stats:
                             pass
 
                         with ui.button(

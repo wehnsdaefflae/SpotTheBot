@@ -24,6 +24,7 @@ class Friend:
     face: Face
     anger: float
     sadness: float
+    wins: int = 0
 
 
 @dataclasses.dataclass(frozen=True)
