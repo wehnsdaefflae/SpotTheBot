@@ -35,176 +35,34 @@ Spot The Bot allows communities to input their authentic texts and then challeng
 ## Getting Started
 To get a local copy up and running, follow these simple steps.
 
-### Prerequisites (todo: finish this)
-Python 3.11
+### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
 
 ### Installation
-Starting from `[working_directory]`
-`[user]`
-`[db_password]`
-`[storage_secret]`
-`[openaí_api_key]`
-`[domain]`
 
-1. Clone the repo
-```sh
-git clone https://github.com/wehnsdaefflae/SpotTheBot
-```
+1.  **Clone the repository**
+    ```sh
+    git clone https://github.com/wehnsdaefflae/SpotTheBot.git
+    cd SpotTheBot
+    ```
 
-2. Create and activate virtual environment
-```sh
-cd SpotTheBot
-python3 -m venv venv
-source venv/bin/activate
-```
+2.  **Set up environment variables**
 
-3. Install pip dependencies
-```sh
-pip install -r requirements.txt
-```
-   
-4. Configure the database
-```sh
-nano databases/general.conf
-```
-```general.conf
-bind 127.0.0.1
-requirepass [db_password]
-port 6379
-save 60 10
-loglevel verbose
-dir databases/
-dbfilename spotthebot.rdb
-appendonly yes
-appendfsync everysec
-```
+    Copy the example environment file and edit it to add your secret keys.
+    ```sh
+    cp .env.example .env
+    nano .env
+    ```
+    You will need to provide your `OPENAI_API_KEY` and a `STORAGE_SECRET`.
 
-5. Add systemd service file for the database
-```sh
-sudo nano /etc/systemd/system/spotthebot_db.service
-```
+3.  **Run the application**
 
-```unit
-[Unit]
-Description=SpotTheBot Redis Server
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=[working_directory]/SpotTheBot
-ExecStart=/usr/bin/redis-server [working_directory]/SpotTheBot/databases/general.conf
-User=root
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-```
-
-6. Add a systemd service file for the server
-```sh
-sudo nano /etc/systemd/system/spotthebot.service
-```
-
-```unit
-[Unit]
-Description=SpotTheBot Python Service
-After=network.target
-
-[Service]
-Type=simple
-User=[user]
-WorkingDirectory=[working_directory]/SpotTheBot
-ExecStart=[working_directory]/SpotTheBot/venv/bin/python [working_directory]/SpotTheBot/src/main.py
-Environment="PYTHONPATH=[working_directory]/SpotTheBot"
-
-[Install]
-WantedBy=multi-user.target
-```
-
-7. Install Nginx
-```sh
-sudo apt install nginx
-```
-
-8. Add a Nginx config file (todo: finish this)
-```sh
-sudo nano /etc/nginx/sites-available/spotthebot
-```
-
-```nginx
-server {
-    listen 80;
-    server_name [domain];
-    location / {
-        proxy_pass http://
-```
-
-9. Install https certificates
-```sh
-sudo certbot --nginx
-```
-
-10. Modify the config file
-```sh
-sudo nano config.json
-```
-
-```json
- {
-  "nicegui": {
-    "host": "0.0.0.0",
-    "port": 8000,
-    "title": "Spot The Bot!",
-    "uvicorn_logging_level": "debug",
-    "storage_secret": "[storage_secret]",
-    "reload": true,
-    "tailwind": true,
-    "prod_js": false
-  },
-  "openai": {
-    "key": "[openaí_api_key]",
-    "parameters": {
-      "model": "gpt-4-1106-preview",
-      "temperature": 0,
-      "top_p": null
-    }
-  },
-  "redis": {
-    "users_database": {
-      "host": "localhost",
-      "port": 6379,
-      "password": "[db_password]",
-      "db": 0
-    },
-    "snippets_database": {
-      "host": "localhost",
-      "port": 6379,
-      "password": "[db_password]",
-      "db": 1
-    },
-    "markers_database": {
-      "host": "localhost",
-      "port": 6379,
-      "password": "[db_password]",
-      "db": 2
-    },
-    "invitations_database": {
-      "host": "localhost",
-      "port": 6379,
-      "password": "[db_password]",
-      "db": 3
-    }
-  }
-}
-```
-
-11. Start and enable server and database
-```sh
-sudo systemctl start spotthebot_db
-sudo systemctl enable spotthebot_db
-sudo systemctl start spotthebot
-sudo systemctl enable spotthebot
- ```
+    Start the application and the Redis database using Docker Compose.
+    ```sh
+    docker-compose up
+    ```
+    The application will be available at [http://localhost:8000](http://localhost:8000).
 
 ## Contributing
 Contributions make the open-source community an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
