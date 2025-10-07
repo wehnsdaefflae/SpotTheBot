@@ -18,16 +18,19 @@ class View:
     def setup_routes(self) -> None:
         @ui.page("/game")
         async def game_page(client: Client) -> None:
+            ui.add_head_html('<script src="/assets/js/main.js"></script>')
             game_content = GameContent(client, self.callbacks)
             await game_content.create_content()
 
         @ui.page("/about")
         async def about_page(client: Client) -> None:
+            ui.add_head_html('<script src="/assets/js/main.js"></script>')
             about_content = DummyContent(client, self.callbacks)
             await about_content.create_content()
 
         @ui.page("/{command}")
         async def hand_in_invitation(client: Client, command: str, value: str) -> None:
+            ui.add_head_html('<script src="/assets/js/main.js"></script>')
             start_content = StartContent(client, self.callbacks)
             if command == "invitation":
                 invitation_hash = value
@@ -39,5 +42,6 @@ class View:
 
         @ui.page("/")
         async def index_page(client: Client) -> None:
+            ui.add_head_html('<script src="/assets/js/main.js"></script>')
             start_content = StartContent(client, self.callbacks)
             await start_content.create_content()

@@ -186,12 +186,14 @@ class UserManager:
             negatives = false_negatives + true_negatives
             anger = 0. if 0 >= positives else false_positives / positives
             sadness = 0. if 0 >= negatives else false_negatives / negatives
+            wins = int(true_positives + true_negatives)
             each_friend = Friend(
                 db_id=int(each_friend_id),
                 name=public_name.decode(),
                 face=Face(face_id.decode()),
                 anger=anger,
                 sadness=sadness,
+                wins=wins,
             )
             friends.add(each_friend)
 
