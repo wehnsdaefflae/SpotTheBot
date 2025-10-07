@@ -5,7 +5,7 @@ import sys
 from nicegui import ui
 from dotenv import load_dotenv
 
-from controller import Controller
+from src.controller import Controller
 
 from loguru import logger
 
